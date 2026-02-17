@@ -9,255 +9,113 @@ namespace plusnot.Pipeline;
 
 public sealed class FramePipeline : IDisposable
 {
-    private readonly CameraCapture camera = new();
-    private readonly BackgroundSegmenter segmenter = new();
-    private readonly AudioCapture audio = new();
-    private readonly Compositor compositor = new();
-    private Thread? thread;
-    private volatile bool running;
-    private readonly Dispatcher dispatcher;
-    private readonly TextBlock fpsText;
-    private readonly Stopwatch stopwatch = new();
+    readonly CameraCapture camera = new();
+    readonly BackgroundSegmenter seg = new();
+    readonly AudioCapture audio = new();
+    readonly Compositor comp = new();
+    Thread? thread; volatile bool running;
+    readonly Dispatcher disp;
+    readonly TextBlock fpsTb;
+    readonly Stopwatch sw = new();
 
-    // Background capture state
-    private volatile bool capturingBackground;
-    private Mat? bgAccumulator;
-    private int bgFrameCount;
-    private const int BgFramesNeeded = 15;
-    private Action<string>? bgStatusCallback;
+    volatile bool capBg; Mat? bgAcc; int bgCount; const int BgNeeded = 15; Action<string>? bgCb;
 
     public bool SegmentationEnabled { get; set; } = true;
     public bool HudEnabled { get; set; } = true;
-    public SegmentationModel ActiveModel => segmenter.ActiveModel;
+    public SegmentationModel ActiveModel => seg.ActiveModel;
     public bool CameraAvailable => camera.IsOpen;
-    public bool HasReferenceBackground => segmenter.HasReferenceBackground;
+    public bool HasReferenceBackground => seg.HasReferenceBackground;
+    public int BlurSize { get => seg.BlurSize; set => seg.BlurSize = value; }
+    public int MaskThreshold { get => seg.MaskThreshold; set => seg.MaskThreshold = value; }
+    public int FeatherErode { get => seg.FeatherErode; set => seg.FeatherErode = value; }
 
-    // Expose segmenter tuning
-    public int BlurSize { get => segmenter.BlurSize; set => segmenter.BlurSize = value; }
-    public int MaskThreshold { get => segmenter.MaskThreshold; set => segmenter.MaskThreshold = value; }
-    public int FeatherErode { get => segmenter.FeatherErode; set => segmenter.FeatherErode = value; }
+    public FramePipeline(Dispatcher d, TextBlock fps) { disp = d; fpsTb = fps; }
 
-    public FramePipeline(Dispatcher dispatcher, TextBlock fpsText)
+    public string? Start(Image img, int cw = 640, int ch = 480)
     {
-        this.dispatcher = dispatcher;
-        this.fpsText = fpsText;
-    }
-
-    public string? Start(System.Windows.Controls.Image displayImage, int camWidth = 640, int camHeight = 480)
-    {
-        bool cameraOk = camera.Start(0, camWidth, camHeight);
-
-        // Default to MediaPipe, fallback to MODNet, then SINet
-        if (!segmenter.Initialize(SegmentationModel.MediaPipe))
-            if (!segmenter.Initialize(SegmentationModel.MODNet))
-                segmenter.Initialize(SegmentationModel.SINet);
-
+        bool ok = camera.Start(0, cw, ch);
+        if (!seg.Initialize(SegmentationModel.MediaPipe))
+            if (!seg.Initialize(SegmentationModel.MODNet))
+                seg.Initialize(SegmentationModel.SINet);
         audio.Start();
-
-        var bgPath = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory, "Assets", "default_bg.jpg");
-        if (File.Exists(bgPath))
-            compositor.SetBackground(bgPath);
-
-        stopwatch.Start();
-        running = true;
-
-        if (!cameraOk)
-        {
-            string error = camera.ErrorMessage ?? "Camera unavailable";
-            ShowErrorFrame(displayImage, error);
-            return error;
-        }
-
-        segmenter.StartAsync();
-
-        thread = new Thread(() => PipelineLoop(displayImage))
-        {
-            IsBackground = true,
-            Name = "FramePipeline"
-        };
+        var bg = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "default_bg.jpg");
+        if (File.Exists(bg)) comp.SetBackground(bg);
+        sw.Start(); running = true;
+        if (!ok) { var err = camera.Error ?? "Camera unavailable"; ShowError(img, err); return err; }
+        seg.StartAsync();
+        thread = new Thread(() => Loop(img)) { IsBackground = true, Name = "FramePipeline" };
         thread.Start();
         return null;
     }
 
-    private void ShowErrorFrame(System.Windows.Controls.Image displayImage, string error)
+    void ShowError(Image img, string err) => disp.Invoke(() => { int w = 1280, h = 720; var b = comp.EnsureBitmap(w, h); comp.ComposeError(b, w, h, err); img.Source = b; });
+
+    void Loop(Image img)
     {
-        dispatcher.Invoke(() =>
-        {
-            int w = 1280, h = 720;
-            var bitmap = compositor.EnsureBitmap(w, h);
-            compositor.ComposeError(bitmap, w, h, error);
-            displayImage.Source = bitmap;
-        });
-    }
-
-    private void PipelineLoop(System.Windows.Controls.Image displayImage)
-    {
-        using var mat = new Mat();
-        using var bgraMat = new Mat();
-        bool sourceSet = false;
-        int frameCount = 0;
-        double lastFpsTime = 0;
-        int pendingFrames = 0;
-
-        // Pre-allocated buffers
-        byte[]? pixelBytes = null;
-        float[] waveform = new float[256];
-
-
+        using var mat = new Mat(); using var bgra = new Mat();
+        bool srcSet = false; int fc = 0; double lastFt = 0; int pend = 0;
+        byte[]? px = null; float[] wav = new float[256];
 
         while (running)
         {
-            if (!camera.ReadFrame(mat))
+            if (!camera.Read(mat)) { Thread.Sleep(1); continue; }
+            if (pend > 0) continue;
+            int w = mat.Width, h = mat.Height;
+
+            if (capBg)
             {
-                Thread.Sleep(1);
-                continue;
+                using var ff = new Mat(); mat.ConvertTo(ff, MatType.CV_32FC3);
+                bgAcc ??= new Mat(h, w, MatType.CV_32FC3, Scalar.All(0));
+                Cv2.Add(bgAcc, ff, bgAcc); bgCount++;
+                var cb = bgCb; int cnt = bgCount, tot = BgNeeded;
+                if (bgCount >= BgNeeded)
+                {
+                    using var a32 = new Mat(); bgAcc.ConvertTo(a32, MatType.CV_32FC3, 1.0 / bgCount);
+                    using var a8 = new Mat(); a32.ConvertTo(a8, MatType.CV_8UC3);
+                    seg.SetReferenceBackground(a8);
+                    bgAcc.Dispose(); bgAcc = null; capBg = false;
+                    disp.BeginInvoke(() => cb?.Invoke("Background captured!"));
+                }
+                else disp.BeginInvoke(() => cb?.Invoke($"Capturing... {cnt}/{tot}"));
             }
 
-            if (pendingFrames > 0)
-                continue;
+            if (SegmentationEnabled && !capBg) seg.SubmitFrame(mat, w, h);
+            byte[]? mask = (SegmentationEnabled && !capBg) ? seg.GetLatestMask() : null;
 
-            int w = mat.Width;
-            int h = mat.Height;
+            Cv2.CvtColor(mat, bgra, ColorConversionCodes.BGR2BGRA);
+            int need = w * h * 4;
+            if (px == null || px.Length != need) px = new byte[need];
+            System.Runtime.InteropServices.Marshal.Copy(bgra.Data, px, 0, need);
+            audio.Fill(wav);
 
-            // Background capture mode: accumulate frames, skip segmentation
-            if (capturingBackground)
-            {
-                using var floatFrame = new Mat();
-                mat.ConvertTo(floatFrame, MatType.CV_32FC3);
+            double t = sw.Elapsed.TotalSeconds;
+            comp.ComposeOffscreen(px, mask, wav, w, h, HudEnabled, t, SegmentationEnabled, seg.ActiveModel.ToString());
 
-                if (bgAccumulator == null)
-                {
-                    bgAccumulator = new Mat(h, w, MatType.CV_32FC3, Scalar.All(0));
-                }
-                Cv2.Add(bgAccumulator, floatFrame, bgAccumulator);
-                bgFrameCount++;
+            fc++; string? fps = null;
+            if (t - lastFt >= 1) { fps = $"FPS: {fc / (t - lastFt):F1}"; fc = 0; lastFt = t; }
 
-                var cb = bgStatusCallback;
-                int count = bgFrameCount;
-                int total = BgFramesNeeded;
-
-                if (bgFrameCount >= BgFramesNeeded)
-                {
-                    // Compute average
-                    using var averaged32 = new Mat();
-                    bgAccumulator.ConvertTo(averaged32, MatType.CV_32FC3, 1.0 / bgFrameCount);
-
-                    using var averaged8 = new Mat();
-                    averaged32.ConvertTo(averaged8, MatType.CV_8UC3);
-
-                    segmenter.SetReferenceBackground(averaged8);
-
-                    bgAccumulator.Dispose();
-                    bgAccumulator = null;
-                    capturingBackground = false;
-
-                    dispatcher.BeginInvoke(() => cb?.Invoke("Background captured!"));
-                }
-                else
-                {
-                    dispatcher.BeginInvoke(() => cb?.Invoke($"Capturing... {count}/{total}"));
-                }
-
-                // During capture, still show camera feed without segmentation
-                // Fall through to render without mask
-            }
-
-            if (SegmentationEnabled && !capturingBackground)
-                segmenter.SubmitFrame(mat, w, h);
-
-            byte[]? mask = (SegmentationEnabled && !capturingBackground) ? segmenter.GetLatestMask() : null;
-
-            // Reuse bgraMat
-            Cv2.CvtColor(mat, bgraMat, ColorConversionCodes.BGR2BGRA);
-
-            // Pre-allocate / reuse pixel buffer
-            int needed = w * h * 4;
-            if (pixelBytes == null || pixelBytes.Length != needed)
-                pixelBytes = new byte[needed];
-
-            System.Runtime.InteropServices.Marshal.Copy(bgraMat.Data, pixelBytes, 0, needed);
-
-            // Reuse waveform buffer
-            audio.GetWaveformSnapshot(waveform);
-
-            double elapsed = stopwatch.Elapsed.TotalSeconds;
-            bool segOn = SegmentationEnabled;
-            string modelName = segmenter.ActiveModel.ToString();
-            bool hudOn = HudEnabled;
-
-            // --- Render offscreen on pipeline thread ---
-            compositor.ComposeOffscreen(pixelBytes, mask, waveform, w, h,
-                                        hudOn, elapsed, segOn, modelName);
-
-            frameCount++;
-            string? fpsStr = null;
-            if (elapsed - lastFpsTime >= 1.0)
-            {
-                double fps = frameCount / (elapsed - lastFpsTime);
-                fpsStr = $"FPS: {fps:F1}";
-                frameCount = 0;
-                lastFpsTime = elapsed;
-            }
-
-            bool needSetSource = !sourceSet;
-            int blitW = w, blitH = h;
-
-            Interlocked.Increment(ref pendingFrames);
-            dispatcher.BeginInvoke(() =>
+            bool setS = !srcSet; int bw = w, bh = h;
+            Interlocked.Increment(ref pend);
+            disp.BeginInvoke(() =>
             {
                 try
                 {
-                    var bitmap = compositor.EnsureBitmap(blitW, blitH);
-                    compositor.BlitToWriteableBitmap(bitmap, blitW, blitH);
-
-                    if (needSetSource)
-                        displayImage.Source = bitmap;
-
-                    if (fpsStr != null)
-                        fpsText.Text = fpsStr;
+                    var bmp = comp.EnsureBitmap(bw, bh);
+                    comp.BlitToWriteableBitmap(bmp, bw, bh);
+                    if (setS) img.Source = bmp;
+                    if (fps != null) fpsTb.Text = fps;
                 }
-                finally
-                {
-                    Interlocked.Decrement(ref pendingFrames);
-                }
+                finally { Interlocked.Decrement(ref pend); }
             });
-
-            sourceSet = true;
+            srcSet = true;
         }
     }
 
-    public void Stop()
-    {
-        running = false;
-        segmenter.StopAsync();
-        thread?.Join(2000);
-    }
-
-    public void CaptureBackground(Action<string> statusCallback)
-    {
-        bgStatusCallback = statusCallback;
-        bgAccumulator?.Dispose();
-        bgAccumulator = null;
-        bgFrameCount = 0;
-        capturingBackground = true;
-    }
-
-    public void ClearReferenceBackground()
-    {
-        segmenter.ClearReferenceBackground();
-    }
-
-    public void SetBackground(string path) => compositor.SetBackground(path);
-    public bool SetModel(SegmentationModel model) => segmenter.Initialize(model);
+    public void CaptureBackground(Action<string> cb) { bgCb = cb; bgAcc?.Dispose(); bgAcc = null; bgCount = 0; capBg = true; }
+    public void ClearReferenceBackground() => seg.ClearReferenceBackground();
+    public void Stop() { running = false; seg.StopAsync(); thread?.Join(2000); }
+    public void SetBackground(string p) => comp.SetBackground(p);
+    public bool SetModel(SegmentationModel m) => seg.Initialize(m);
     public void OpenCameraSettings() => camera.OpenSettings();
-
-    public void Dispose()
-    {
-        audio.Dispose();
-        segmenter.Dispose();
-        camera.Dispose();
-        compositor.Dispose();
-        bgAccumulator?.Dispose();
-    }
+    public void Dispose() { audio.Dispose(); seg.Dispose(); camera.Dispose(); comp.Dispose(); bgAcc?.Dispose(); }
 }

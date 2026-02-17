@@ -4,59 +4,29 @@ namespace plusnot.Pipeline;
 
 public sealed class CameraCapture : IDisposable
 {
-    private VideoCapture? capture;
+    private VideoCapture? cap;
+    public bool IsOpen => cap?.IsOpened() == true;
+    public string? Error { get; private set; }
 
-    public bool IsOpen => capture?.IsOpened() == true;
-    public string? ErrorMessage { get; private set; }
-
-    public bool Start(int deviceIndex = 0, int width = 1280, int height = 720)
+    public bool Start(int dev = 0, int w = 640, int h = 480)
     {
         try
         {
-            capture = new VideoCapture(deviceIndex, VideoCaptureAPIs.DSHOW);
-
-            if (!capture.IsOpened())
+            cap = new VideoCapture(dev, VideoCaptureAPIs.DSHOW);
+            if (!cap.IsOpened())
             {
-                ErrorMessage = $"Camera {deviceIndex} is busy or not available.\nClose other apps using the camera and restart.";
-                capture.Dispose();
-                capture = null;
-                return false;
+                Error = $"Camera {dev} busy or unavailable.";
+                cap.Dispose(); cap = null; return false;
             }
-
-            capture.Set(VideoCaptureProperties.FrameWidth, width);
-            capture.Set(VideoCaptureProperties.FrameHeight, height);
-            capture.Set(VideoCaptureProperties.Fps, 30);
-            ErrorMessage = null;
+            cap.Set(VideoCaptureProperties.FrameWidth, w);
+            cap.Set(VideoCaptureProperties.FrameHeight, h);
+            cap.Set(VideoCaptureProperties.Fps, 30);
             return true;
         }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Failed to open camera {deviceIndex}:\n{ex.Message}";
-            capture?.Dispose();
-            capture = null;
-            return false;
-        }
+        catch (Exception ex) { Error = ex.Message; cap?.Dispose(); cap = null; return false; }
     }
 
-    public bool ReadFrame(Mat mat)
-    {
-        if (capture == null) return false;
-        capture.Read(mat);
-        return !mat.Empty();
-    }
-
-    public void OpenSettings()
-    {
-        if (capture != null && capture.IsOpened())
-        {
-            capture.Set(VideoCaptureProperties.Settings, 1);
-        }
-    }
-
-    public void Dispose()
-    {
-        capture?.Release();
-        capture?.Dispose();
-        capture = null;
-    }
+    public bool Read(Mat m) { if (cap == null) return false; cap.Read(m); return !m.Empty(); }
+    public void OpenSettings() { if (cap?.IsOpened() == true) cap.Set(VideoCaptureProperties.Settings, 1); }
+    public void Dispose() { cap?.Release(); cap?.Dispose(); }
 }

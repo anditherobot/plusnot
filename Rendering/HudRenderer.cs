@@ -4,274 +4,102 @@ namespace plusnot.Rendering;
 
 public sealed class HudRenderer
 {
-    private readonly SKPaint bracketPaint;
-    private readonly SKPaint thinPaint;
-    private readonly SKPaint textPaint;
-    private readonly SKPaint scanPaint;
-    private readonly SKPaint dimPaint;
-    private readonly SKPaint timerPaint;
-    private readonly SKPaint boxBorderPaint;
-    private readonly SKPaint boxTextPaint;
-    private readonly SKPaint boxBgPaint;
+    static readonly SKColor C = SKColor.Parse("#00FFCC");
+    readonly SKPaint bracket = new() { Color = C, StrokeWidth = 3, IsAntialias = true, Style = SKPaintStyle.Stroke };
+    readonly SKPaint thin = new() { Color = C, StrokeWidth = 1, IsAntialias = true, Style = SKPaintStyle.Stroke };
+    readonly SKPaint text = new() { Color = C, Typeface = SKTypeface.FromFamilyName("Consolas"), TextSize = 13, IsAntialias = true };
+    readonly SKPaint scan = new() { Color = new SKColor(0, 255, 204, 60), StrokeWidth = 2, IsAntialias = true, Style = SKPaintStyle.Stroke, MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 4) };
+    readonly SKPaint dim = new() { Color = SKColor.Parse("#004444"), StrokeWidth = 1, IsAntialias = true, Style = SKPaintStyle.Stroke };
+    readonly SKPaint timer = new() { Color = C, Typeface = SKTypeface.FromFamilyName("Consolas"), TextSize = 30, IsAntialias = true, MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 1.5f) };
+    readonly SKPaint boxBg = new() { Color = new SKColor(10, 10, 26, 180), Style = SKPaintStyle.Fill };
+    readonly SKPaint boxBorder = new() { Color = new SKColor(0, 255, 204, 100), StrokeWidth = 1, IsAntialias = true, Style = SKPaintStyle.Stroke };
+    readonly SKPaint boxText = new() { Color = new SKColor(0, 255, 204, 180), Typeface = SKTypeface.FromFamilyName("Consolas"), TextSize = 12, IsAntialias = true };
 
-    private int frameCount;
-    private double lastFpsTime;
-    private double currentFps;
-
-    // Star text box state
-    private readonly string[] starPatterns;
-    private readonly List<string> visibleLines = new();
-    private double lastStarTime;
-    private int nextPatternIndex;
+    int fc; double lastFt, fps;
+    readonly string[] stars;
+    readonly List<string> lines = new();
+    double lastStar; int starIdx;
 
     public HudRenderer()
     {
-        bracketPaint = new SKPaint
-        {
-            Color = SKColor.Parse("#00FFCC"),
-            StrokeWidth = 3,
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke
-        };
+        var r = new Random(42);
+        stars = Enumerable.Range(0, 20).Select(_ => new string('*', r.Next(4, 15))).ToArray();
+    }
 
-        thinPaint = new SKPaint
-        {
-            Color = SKColor.Parse("#00FFCC"),
-            StrokeWidth = 1,
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke
-        };
+    public void Draw(SKCanvas c, int w, int h, double t, bool segOn = true, string model = "")
+    {
+        fc++;
+        if (t - lastFt >= 1) { fps = fc / (t - lastFt); fc = 0; lastFt = t; }
 
-        textPaint = new SKPaint
-        {
-            Color = SKColor.Parse("#00FFCC"),
-            Typeface = SKTypeface.FromFamilyName("Consolas"),
-            TextSize = 13,
-            IsAntialias = true
-        };
+        int ins = 30, arm = 60;
+        byte pa = (byte)(180 + 75 * Math.Sin(t * 2));
+        bracket.Color = new SKColor(0, 255, 204, pa);
 
-        scanPaint = new SKPaint
-        {
-            Color = new SKColor(0, 255, 204, 60),
-            StrokeWidth = 2,
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke,
-            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 4)
-        };
+        // Corner brackets (4 corners, each: 2 arms + 3 ticks per axis)
+        DrawCorner(c, ins, ins, 1, 1, arm);
+        DrawCorner(c, w - ins, ins, -1, 1, arm);
+        DrawCorner(c, ins, h - ins, 1, -1, arm);
+        DrawCorner(c, w - ins, h - ins, -1, -1, arm);
 
-        dimPaint = new SKPaint
-        {
-            Color = SKColor.Parse("#004444"),
-            StrokeWidth = 1,
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke
-        };
+        // Scan line
+        c.DrawLine(0, (float)(t % 4 / 4 * h), w, (float)(t % 4 / 4 * h), scan);
 
-        timerPaint = new SKPaint
-        {
-            Color = SKColor.Parse("#00FFCC"),
-            Typeface = SKTypeface.FromFamilyName("Consolas"),
-            TextSize = 30,
-            IsAntialias = true,
-            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 1.5f)
-        };
+        // Reticle
+        float cx = w / 2f, cy = h / 2f;
+        c.DrawCircle(cx, cy, 80, thin); c.DrawCircle(cx, cy, 40, dim);
+        c.DrawLine(cx - 15, cy, cx + 15, cy, thin); c.DrawLine(cx, cy - 15, cx, cy + 15, thin);
+        c.Save(); c.RotateDegrees((float)(t * 30), cx, cy);
+        for (int i = 0; i < 4; i++) { c.Save(); c.RotateDegrees(i * 90, cx, cy); c.DrawLine(cx, cy - 76, cx, cy - 84, thin); c.Restore(); }
+        c.Restore();
 
-        boxBorderPaint = new SKPaint
-        {
-            Color = new SKColor(0, 255, 204, 100),
-            StrokeWidth = 1,
-            IsAntialias = true,
-            Style = SKPaintStyle.Stroke
-        };
+        // Data readouts
+        float tx = ins + 10, ty = ins + arm + 20;
+        c.DrawText("SYS: ONLINE", tx, ty, text);
+        c.DrawText($"FPS: {fps:F1}", tx, ty + 18, text);
+        c.DrawText($"RES: {w}x{h}", tx, ty + 36, text);
 
-        boxTextPaint = new SKPaint
-        {
-            Color = new SKColor(0, 255, 204, 180),
-            Typeface = SKTypeface.FromFamilyName("Consolas"),
-            TextSize = 12,
-            IsAntialias = true
-        };
+        // Large timer top-right
+        var ts = DateTime.Now.ToString("HH:mm:ss.ff");
+        c.DrawText(ts, w - ins - 10 - timer.MeasureText(ts), ins + 30, timer);
 
-        boxBgPaint = new SKPaint
-        {
-            Color = new SKColor(10, 10, 26, 180),
-            Style = SKPaintStyle.Fill
-        };
+        // Seg status
+        c.DrawText($"SEG: {(segOn ? "ON" : "OFF")}", tx, h - 100, text);
+        if (segOn && model.Length > 0) c.DrawText($"MDL: {model}", tx, h - 82, text);
 
-        // Pre-generate 20 star-line patterns with seeded random
-        var rng = new Random(42);
-        starPatterns = new string[20];
-        for (int i = 0; i < 20; i++)
+        // Star box
+        DrawStarBox(c, w, h, t);
+
+        // Edge lines + notches
+        c.DrawLine(20, 20, w - 20, 20, thin); c.DrawLine(20, h - 20, w - 20, h - 20, thin);
+        for (float nx = 20; nx < w - 20; nx += 80) { c.DrawLine(nx, 20, nx, 25, thin); c.DrawLine(nx, h - 20, nx, h - 25, thin); }
+    }
+
+    void DrawCorner(SKCanvas c, float x, float y, int dx, int dy, int arm)
+    {
+        c.DrawLine(x, y, x + dx * arm, y, bracket);
+        c.DrawLine(x, y, x, y + dy * arm, bracket);
+        for (int t = 1; t <= 3; t++)
         {
-            int len = rng.Next(4, 15);
-            starPatterns[i] = new string('*', len);
+            float p = t * 15f;
+            c.DrawLine(x + dx * p, y, x + dx * p, y + dy * 6, thin);
+            c.DrawLine(x, y + dy * p, x + dx * 6, y + dy * p, thin);
         }
     }
 
-    public void Draw(SKCanvas canvas, int w, int h, double elapsed,
-                     bool segOn = true, string modelName = "")
+    void DrawStarBox(SKCanvas c, int w, int h, double t)
     {
-        // FPS tracking
-        frameCount++;
-        if (elapsed - lastFpsTime >= 1.0)
+        if (t - lastStar >= 0.7 && t > 0.1)
         {
-            currentFps = frameCount / (elapsed - lastFpsTime);
-            frameCount = 0;
-            lastFpsTime = elapsed;
+            lastStar = t;
+            lines.Add(stars[starIdx++ % stars.Length]);
+            while (lines.Count > 6) lines.RemoveAt(0);
         }
-
-        int inset = 30;
-        int arm = 60;
-
-        // --- CORNER BRACKETS ---
-        byte pulsingAlpha = (byte)(180 + 75 * Math.Sin(elapsed * 2.0));
-        bracketPaint.Color = new SKColor(0, 255, 204, pulsingAlpha);
-
-        // Top-Left
-        canvas.DrawLine(inset, inset, inset + arm, inset, bracketPaint);
-        canvas.DrawLine(inset, inset, inset, inset + arm, bracketPaint);
-        for (int t = 1; t <= 3; t++)
-        {
-            float pos = t * 15f;
-            canvas.DrawLine(inset + pos, inset, inset + pos, inset + 6, thinPaint);
-            canvas.DrawLine(inset, inset + pos, inset + 6, inset + pos, thinPaint);
-        }
-
-        // Top-Right
-        canvas.DrawLine(w - inset, inset, w - inset - arm, inset, bracketPaint);
-        canvas.DrawLine(w - inset, inset, w - inset, inset + arm, bracketPaint);
-        for (int t = 1; t <= 3; t++)
-        {
-            float pos = t * 15f;
-            canvas.DrawLine(w - inset - pos, inset, w - inset - pos, inset + 6, thinPaint);
-            canvas.DrawLine(w - inset, inset + pos, w - inset - 6, inset + pos, thinPaint);
-        }
-
-        // Bottom-Left
-        canvas.DrawLine(inset, h - inset, inset + arm, h - inset, bracketPaint);
-        canvas.DrawLine(inset, h - inset, inset, h - inset - arm, bracketPaint);
-        for (int t = 1; t <= 3; t++)
-        {
-            float pos = t * 15f;
-            canvas.DrawLine(inset + pos, h - inset, inset + pos, h - inset - 6, thinPaint);
-            canvas.DrawLine(inset, h - inset - pos, inset + 6, h - inset - pos, thinPaint);
-        }
-
-        // Bottom-Right
-        canvas.DrawLine(w - inset, h - inset, w - inset - arm, h - inset, bracketPaint);
-        canvas.DrawLine(w - inset, h - inset, w - inset, h - inset - arm, bracketPaint);
-        for (int t = 1; t <= 3; t++)
-        {
-            float pos = t * 15f;
-            canvas.DrawLine(w - inset - pos, h - inset, w - inset - pos, h - inset - 6, thinPaint);
-            canvas.DrawLine(w - inset, h - inset - pos, w - inset - 6, h - inset - pos, thinPaint);
-        }
-
-        // --- SCANNING LINE ---
-        float scanY = (float)((elapsed % 4.0 / 4.0) * h);
-        canvas.DrawLine(0, scanY, w, scanY, scanPaint);
-
-        // --- CENTER RETICLE ---
-        float cx = w / 2f;
-        float cy = h / 2f;
-        canvas.DrawCircle(cx, cy, 80, thinPaint);
-        canvas.DrawCircle(cx, cy, 40, dimPaint);
-
-        // Crosshair
-        canvas.DrawLine(cx - 15, cy, cx + 15, cy, thinPaint);
-        canvas.DrawLine(cx, cy - 15, cx, cy + 15, thinPaint);
-
-        // Rotating tick marks
-        canvas.Save();
-        canvas.RotateDegrees((float)(elapsed * 30), cx, cy);
-        for (int i = 0; i < 4; i++)
-        {
-            canvas.Save();
-            canvas.RotateDegrees(i * 90, cx, cy);
-            canvas.DrawLine(cx, cy - 76, cx, cy - 84, thinPaint);
-            canvas.Restore();
-        }
-        canvas.Restore();
-
-        // --- DATA READOUTS ---
-        float textX = inset + 10;
-        float textY = inset + arm + 20;
-        canvas.DrawText("SYS: ONLINE", textX, textY, textPaint);
-        canvas.DrawText($"FPS: {currentFps:F1}", textX, textY + 18, textPaint);
-        canvas.DrawText($"RES: {w}x{h}", textX, textY + 36, textPaint);
-
-        // Timestamp top-right (large timer inside bracket)
-        string timestamp = DateTime.Now.ToString("HH:mm:ss.ff");
-        float tsWidth = timerPaint.MeasureText(timestamp);
-        canvas.DrawText(timestamp, w - inset - 10 - tsWidth, inset + 30, timerPaint);
-
-        // Segmentation status bottom-left (above waveform area)
-        string segStatus = segOn ? "ON" : "OFF";
-        canvas.DrawText($"SEG: {segStatus}", textX, h - 100, textPaint);
-        if (segOn && !string.IsNullOrEmpty(modelName))
-            canvas.DrawText($"MDL: {modelName}", textX, h - 82, textPaint);
-
-        // --- STAR TEXT BOX (bottom-right, above waveform) ---
-        DrawStarTextBox(canvas, w, h, elapsed);
-
-        // --- EDGE LINES ---
-        float ruleY1 = 20;
-        float ruleY2 = h - 20;
-        canvas.DrawLine(20, ruleY1, w - 20, ruleY1, thinPaint);
-        canvas.DrawLine(20, ruleY2, w - 20, ruleY2, thinPaint);
-
-        // Notch marks every 80px
-        for (float nx = 20; nx < w - 20; nx += 80)
-        {
-            canvas.DrawLine(nx, ruleY1, nx, ruleY1 + 5, thinPaint);
-            canvas.DrawLine(nx, ruleY2, nx, ruleY2 - 5, thinPaint);
-        }
-    }
-
-    private void DrawStarTextBox(SKCanvas canvas, int w, int h, double elapsed)
-    {
-        // Update star lines every ~0.7 seconds
-        if (elapsed - lastStarTime >= 0.7 && elapsed > 0.1)
-        {
-            lastStarTime = elapsed;
-            visibleLines.Add(starPatterns[nextPatternIndex % starPatterns.Length]);
-            nextPatternIndex++;
-
-            // Keep max 6 visible lines (oldest scrolls off)
-            while (visibleLines.Count > 6)
-                visibleLines.RemoveAt(0);
-        }
-
-        // Box dimensions
-        float boxW = 160;
-        float boxH = 120;
-        float boxX = w - 30 - boxW;  // right side, inside inset
-        float boxY = h - 100 - boxH; // above waveform area
-
-        // Background
-        canvas.DrawRect(boxX, boxY, boxW, boxH, boxBgPaint);
-        // Border
-        canvas.DrawRect(boxX, boxY, boxW, boxH, boxBorderPaint);
-
-        // Draw star lines
-        float lineX = boxX + 8;
-        float lineY = boxY + 16;
-        float lineSpacing = 15;
-
-        for (int i = 0; i < visibleLines.Count; i++)
-        {
-            canvas.DrawText(visibleLines[i], lineX, lineY + i * lineSpacing, boxTextPaint);
-        }
-
-        // Blinking cursor on next empty line
-        bool cursorVisible = ((int)(elapsed * 2.5)) % 2 == 0;
-        if (cursorVisible)
-        {
-            float cursorY = lineY + visibleLines.Count * lineSpacing;
-            if (cursorY < boxY + boxH - 4)
-            {
-                canvas.DrawText("_", lineX, cursorY, boxTextPaint);
-            }
-        }
+        float bx = w - 190, by = h - 220;
+        c.DrawRect(bx, by, 160, 120, boxBg);
+        c.DrawRect(bx, by, 160, 120, boxBorder);
+        for (int i = 0; i < lines.Count; i++)
+            c.DrawText(lines[i], bx + 8, by + 16 + i * 15, boxText);
+        if ((int)(t * 2.5) % 2 == 0 && by + 16 + lines.Count * 15 < by + 116)
+            c.DrawText("_", bx + 8, by + 16 + lines.Count * 15, boxText);
     }
 }
