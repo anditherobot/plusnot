@@ -47,12 +47,15 @@ public partial class MainWindow : Window
     void SliderThreads_Changed(object s, RoutedPropertyChangedEventArgs<double> e) { if (LblThreads != null) LblThreads.Text = ((int)e.NewValue).ToString(); }
     void ChkSeg_Changed(object s, RoutedEventArgs e) { if (p != null) p.SegmentationEnabled = ChkSegmentation.IsChecked == true; }
     void ChkHud_Changed(object s, RoutedEventArgs e) { if (p != null) p.HudEnabled = ChkHud.IsChecked == true; }
+    void ChkDebug_Changed(object s, RoutedEventArgs e) { if (p != null) p.PipelineDebugEnabled = ChkDebug.IsChecked == true; }
+    void SliderDiffThresh_Changed(object s, RoutedPropertyChangedEventArgs<double> e) { int v = (int)e.NewValue; if (LblDiffThresh != null) LblDiffThresh.Text = v.ToString(); if (p != null) p.DiffThreshold = v; }
+    void SliderDiffDilate_Changed(object s, RoutedPropertyChangedEventArgs<double> e) { int v = (int)e.NewValue; if (LblDiffDilate != null) LblDiffDilate.Text = v.ToString(); if (p != null) p.DiffDilate = v; }
 
     void BtnCaptureBg_Click(object s, RoutedEventArgs e)
     {
         if (p == null || !p.CameraAvailable) return;
-        BtnCaptureBg.IsEnabled = false; cdRemain = 3;
-        BgOverlayText.Text = "Step away... Capturing in 3..."; BgOverlayText.Visibility = Visibility.Visible;
+        BtnCaptureBg.IsEnabled = false; cdRemain = 5;
+        BgOverlayText.Text = "Step away... Capturing in 5..."; BgOverlayText.Visibility = Visibility.Visible;
         cdTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         cdTimer.Tick += CdTick; cdTimer.Start();
     }

@@ -20,6 +20,11 @@ public sealed class BackgroundSegmenter : IDisposable
     private int pw, ph;
     private DenseTensor<float>? tensorBuf; private int tensorBufSize;
     private string? inputName; private byte[]? extractBuf;
+    public volatile bool DebugCapture;
+    private byte[]? debugRawBuf, debugPostBuf, debugDiffBuf;
+    private int debugSize;
+    public int DiffThreshold { get; set; } = 25;
+    public int DiffDilate { get; set; } = 2;
 
     private Mat? refBg;
     private volatile bool useRef;
@@ -76,6 +81,7 @@ public sealed class BackgroundSegmenter : IDisposable
     }
 
     public byte[]? GetLatestMask() => latestMask;
+    public (byte[]? raw, byte[]? post, byte[]? diff, int size) GetDebugMasks() => (debugRawBuf, debugPostBuf, debugDiffBuf, debugSize);
 
     void Loop()
     {
@@ -111,11 +117,13 @@ public sealed class BackgroundSegmenter : IDisposable
             using var res = session.Run(inp);
             var outT = res.First().AsTensor<float>();
             var mask = ExtractMask(outT, sz);
+            if (DebugCapture) { int dsz = sz * sz; if (debugRawBuf == null || debugRawBuf.Length != dsz) debugRawBuf = new byte[dsz]; Buffer.BlockCopy(mask, 0, debugRawBuf, 0, dsz); debugSize = sz; }
 
             using var maskMat = new Mat(sz, sz, MatType.CV_8UC1);
             Marshal.Copy(mask, 0, maskMat.Data, mask.Length);
 
             using var proc = new Mat(); PostProcess(maskMat, proc);
+            if (DebugCapture) { int dsz = sz * sz; if (debugPostBuf == null || debugPostBuf.Length != dsz) debugPostBuf = new byte[dsz]; Marshal.Copy(proc.Data, debugPostBuf, 0, dsz); }
 
             // Optional background-diff combination
             Mat final_ = proc;
@@ -125,13 +133,16 @@ public sealed class BackgroundSegmenter : IDisposable
                 using var cr = new Mat(); Cv2.Resize(cam, cr, new Size(refBg.Cols, refBg.Rows));
                 using var diff = new Mat(); Cv2.Absdiff(cr, refBg, diff);
                 using var gray = new Mat(); Cv2.CvtColor(diff, gray, ColorConversionCodes.BGR2GRAY);
-                using var bin = new Mat(); Cv2.Threshold(gray, bin, 25, 255, ThresholdTypes.Binary);
-                using var kern = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(5, 5));
+                using var bin = new Mat(); Cv2.Threshold(gray, bin, DiffThreshold, 255, ThresholdTypes.Binary);
+                int dk = Math.Max(1, DiffDilate * 2 + 1);
+                using var kern = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(dk, dk));
                 using var dil = new Mat(); Cv2.Dilate(bin, dil, kern);
                 using var dr = new Mat(); Cv2.Resize(dil, dr, new Size(proc.Cols, proc.Rows));
+                if (DebugCapture) { int dsz = proc.Cols * proc.Rows; if (debugDiffBuf == null || debugDiffBuf.Length != dsz) debugDiffBuf = new byte[dsz]; Marshal.Copy(dr.Data, debugDiffBuf, 0, dsz); }
                 diffResult = new Mat(); Cv2.Max(proc, dr, diffResult);
                 final_ = diffResult;
             }
+            else if (DebugCapture) { debugDiffBuf = null; }
 
             using var outMat = new Mat(); Cv2.Resize(final_, outMat, new Size(ow, oh));
             diffResult?.Dispose();

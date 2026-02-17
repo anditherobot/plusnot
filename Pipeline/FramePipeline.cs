@@ -28,6 +28,9 @@ public sealed class FramePipeline : IDisposable
     public int BlurSize { get => seg.BlurSize; set => seg.BlurSize = value; }
     public int MaskThreshold { get => seg.MaskThreshold; set => seg.MaskThreshold = value; }
     public int FeatherErode { get => seg.FeatherErode; set => seg.FeatherErode = value; }
+    public bool PipelineDebugEnabled { get => seg.DebugCapture; set => seg.DebugCapture = value; }
+    public int DiffThreshold { get => seg.DiffThreshold; set => seg.DiffThreshold = value; }
+    public int DiffDilate { get => seg.DiffDilate; set => seg.DiffDilate = value; }
 
     public FramePipeline(Dispatcher d, TextBlock fps) { disp = d; fpsTb = fps; }
 
@@ -101,7 +104,14 @@ public sealed class FramePipeline : IDisposable
             audio.Fill(wav);
 
             double t = sw.Elapsed.TotalSeconds;
-            comp.ComposeOffscreen(px, mask, wav, w, h, HudEnabled, t, SegmentationEnabled, seg.ActiveModel.ToString());
+            PipelineDebugData? debugData = null;
+            if (seg.DebugCapture && mask != null)
+            {
+                var (raw, post, diff, dsz) = seg.GetDebugMasks();
+                if (raw != null && post != null)
+                    debugData = new PipelineDebugData { RawMask = raw, PostMask = post, DiffMask = diff, FinalMask = mask, RawW = dsz, RawH = dsz, FinalW = w, FinalH = h };
+            }
+            comp.ComposeOffscreen(px, mask, wav, w, h, HudEnabled, t, SegmentationEnabled, seg.ActiveModel.ToString(), debugData);
 
             fc++; string? fps = null;
             if (t - lastFt >= 1) { fps = $"FPS: {fc / (t - lastFt):F1}"; fc = 0; lastFt = t; }

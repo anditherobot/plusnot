@@ -20,7 +20,7 @@
         <Border x:Name="TuningPanel" Grid.Row="0" Grid.Column="1" Background="#12122A" BorderBrush="#00FFCC" BorderThickness="1,0,0,0" Width="220" Visibility="Collapsed">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="10,8">
                 <StackPanel>
-                    <TextBlock Text="TUNING" Foreground="#00FFCC" FontFamily="Consolas" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" />
+                    <TextBlock Text="SETTINGS" Foreground="#00FFCC" FontFamily="Consolas" FontSize="14" FontWeight="Bold" Margin="0,0,0,8" />
                     <TextBlock Text="Model" Style="{StaticResource PanelLabel}" />
                     <ComboBox x:Name="CmbModel" Style="{StaticResource PanelCombo}" SelectionChanged="CmbModel_Changed">
                         <ComboBoxItem Content="MediaPipe" Tag="MediaPipe" IsSelected="True" />
@@ -33,6 +33,7 @@
                         <ComboBoxItem Content="1280 x 720" Tag="1280" />
                     </ComboBox>
                     <Separator Background="#004444" Margin="0,10" />
+                    <TextBlock Text="MASK CLEANUP" Foreground="#00FFCC" FontFamily="Consolas" FontSize="12" FontWeight="Bold" Margin="0,0,0,4" />
                     <TextBlock Style="{StaticResource PanelLabel}"><Run Text="Edge Blur: " /><Run x:Name="LblBlur" Text="7" /></TextBlock>
                     <Slider x:Name="SliderBlur" Minimum="0" Maximum="21" Value="7" IsSnapToTickEnabled="True" TickFrequency="2" SmallChange="2" LargeChange="4" ValueChanged="SliderBlur_Changed" />
                     <TextBlock Style="{StaticResource PanelLabel}"><Run Text="Mask Threshold: " /><Run x:Name="LblThreshold" Text="0" /></TextBlock>
@@ -40,21 +41,28 @@
                     <TextBlock Style="{StaticResource PanelLabel}"><Run Text="Edge Erode: " /><Run x:Name="LblFeather" Text="0" /></TextBlock>
                     <Slider x:Name="SliderFeather" Minimum="0" Maximum="15" Value="0" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="SliderFeather_Changed" />
                     <Separator Background="#004444" Margin="0,10" />
+                    <TextBlock Text="SCENE CALIBRATION" Foreground="#00FFCC" FontFamily="Consolas" FontSize="12" FontWeight="Bold" Margin="0,0,0,4" />
+                    <TextBlock Style="{StaticResource PanelLabel}"><Run Text="Diff Threshold: " /><Run x:Name="LblDiffThresh" Text="25" /></TextBlock>
+                    <Slider x:Name="SliderDiffThresh" Minimum="0" Maximum="100" Value="25" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="SliderDiffThresh_Changed" />
+                    <TextBlock Style="{StaticResource PanelLabel}"><Run Text="Diff Spread: " /><Run x:Name="LblDiffDilate" Text="2" /></TextBlock>
+                    <Slider x:Name="SliderDiffDilate" Minimum="0" Maximum="10" Value="2" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="SliderDiffDilate_Changed" />
+                    <Separator Background="#004444" Margin="0,10" />
                     <TextBlock Style="{StaticResource PanelLabel}"><Run Text="ONNX Threads: " /><Run x:Name="LblThreads" Text="4" /></TextBlock>
                     <Slider x:Name="SliderThreads" Minimum="1" Maximum="16" Value="4" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="SliderThreads_Changed" />
                     <Separator Background="#004444" Margin="0,10" />
                     <CheckBox x:Name="ChkSegmentation" Content="Background Removal" IsChecked="True" Style="{StaticResource ToolbarCheckBox}" Checked="ChkSeg_Changed" Unchecked="ChkSeg_Changed" />
                     <CheckBox x:Name="ChkHud" Content="HUD Overlay" IsChecked="True" Style="{StaticResource ToolbarCheckBox}" Margin="8,6" Checked="ChkHud_Changed" Unchecked="ChkHud_Changed" />
+                    <CheckBox x:Name="ChkDebug" Content="Pipeline Debug" IsChecked="False" Style="{StaticResource ToolbarCheckBox}" Margin="8,6" Checked="ChkDebug_Changed" Unchecked="ChkDebug_Changed" />
                 </StackPanel>
             </ScrollViewer>
         </Border>
 
         <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="#1A1A2E">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
-                <Button Content="Cam Settings" Style="{StaticResource ToolbarButton}" Click="BtnCam_Click" />
-                <Button Content="Change Background" Style="{StaticResource ToolbarButton}" Click="BtnBg_Click" />
-                <Button x:Name="BtnTuning" Content="Tuning" Style="{StaticResource ToolbarButton}" Click="BtnTuning_Click" />
-                <Button x:Name="BtnCaptureBg" Content="Capture BG" Style="{StaticResource ToolbarButton}" Click="BtnCaptureBg_Click" />
+                <Button Content="Camera" Style="{StaticResource ToolbarButton}" Click="BtnCam_Click" />
+                <Button Content="BG Image" Style="{StaticResource ToolbarButton}" Click="BtnBg_Click" />
+                <Button x:Name="BtnTuning" Content="Settings" Style="{StaticResource ToolbarButton}" Click="BtnTuning_Click" />
+                <Button x:Name="BtnCaptureBg" Content="Calibrate" Style="{StaticResource ToolbarButton}" Click="BtnCaptureBg_Click" />
                 <TextBlock x:Name="FpsText" Foreground="#00FFCC" FontFamily="Consolas" FontSize="12" Margin="16,0" VerticalAlignment="Center" Text="FPS: --" />
             </StackPanel>
         </Border>

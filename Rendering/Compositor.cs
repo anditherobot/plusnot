@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using SkiaSharp;
+using plusnot.Pipeline;
 
 namespace plusnot.Rendering;
 
@@ -13,7 +14,11 @@ public sealed class Compositor : IDisposable
     private int cacheW, cacheH;
     private readonly HudRenderer hud = new();
     private readonly WaveformRenderer wave = new();
-    private readonly SKPaint bgPaint = new() { ImageFilter = SKImageFilter.CreateBlur(4, 4) };
+    private readonly SKPaint thumbBg = new() { Color = new SKColor(10, 10, 26, 200), Style = SKPaintStyle.Fill };
+    private readonly SKPaint thumbBorder = new() { Color = new SKColor(0, 255, 204, 150), StrokeWidth = 1, IsAntialias = true, Style = SKPaintStyle.Stroke };
+    private readonly SKPaint thumbLabel = new() { Color = new SKColor(0, 255, 204, 200), Typeface = SKTypeface.FromFamilyName("Consolas"), TextSize = 10, IsAntialias = true };
+    private byte[]? thumbPixBuf;
+    private readonly SKPaint bgPaint = new();
     private byte[]? offBuf; private GCHandle offPin; private SKSurface? offSurf; private int offW, offH;
 
     public WriteableBitmap EnsureBitmap(int w, int h)
@@ -77,7 +82,7 @@ public sealed class Compositor : IDisposable
         finally { b.Unlock(); }
     }
 
-    public void ComposeOffscreen(byte[] px, byte[]? mask, float[] wav, int w, int h, bool hudOn, double t, bool segOn = true, string model = "")
+    public void ComposeOffscreen(byte[] px, byte[]? mask, float[] wav, int w, int h, bool hudOn, double t, bool segOn = true, string model = "", PipelineDebugData? debugData = null)
     {
         EnsureOffscreen(w, h);
         var c = offSurf!.Canvas; c.Clear(SKColors.Black);
@@ -91,6 +96,7 @@ public sealed class Compositor : IDisposable
         else Blit(c, px, w, h, SKAlphaType.Premul);
         if (hudOn) hud.Draw(c, w, h, t, segOn, model);
         wave.Draw(c, wav, w, h);
+        if (debugData.HasValue) DrawDebugThumbnails(c, debugData.Value, w, h);
         c.Flush();
     }
 
@@ -107,9 +113,45 @@ public sealed class Compositor : IDisposable
         fixed (byte* p = px) { using var img = SKImage.FromPixelCopy(new SKImageInfo(w, h, SKColorType.Bgra8888, a), (IntPtr)p, w * 4); c.DrawImage(img, 0, 0); }
     }
 
+    void DrawDebugThumbnails(SKCanvas c, PipelineDebugData dbg, int w, int h)
+    {
+        const int tw = 120, th = 90, sp = 8;
+        float x = 40, y = h - 90 - th - 8;
+        var items = new (string label, byte[]? data, int dw, int dh)[]
+        {
+            ("AI", dbg.RawMask, dbg.RawW, dbg.RawH),
+            ("CLEANUP", dbg.PostMask, dbg.RawW, dbg.RawH),
+            ("BG DIFF", dbg.DiffMask, dbg.RawW, dbg.RawH),
+            ("FINAL", dbg.FinalMask, dbg.FinalW, dbg.FinalH),
+        };
+        foreach (var (label, data, dw, dh) in items)
+        {
+            c.DrawRect(x, y, tw, th, thumbBg);
+            c.DrawRect(x, y, tw, th, thumbBorder);
+            c.DrawText(label, x + 4, y + th - 4, thumbLabel);
+            if (data != null && dw > 0 && dh > 0)
+                DrawGrayscaleThumbnail(c, data, dw, dh, new SKRect(x + 2, y + 2, x + tw - 2, y + th - 16));
+            x += tw + sp;
+        }
+    }
+
+    unsafe void DrawGrayscaleThumbnail(SKCanvas c, byte[] gray, int gw, int gh, SKRect dst)
+    {
+        int n = Math.Min(gray.Length, gw * gh);
+        int need = n * 4;
+        if (thumbPixBuf == null || thumbPixBuf.Length < need) thumbPixBuf = new byte[need];
+        for (int i = 0; i < n; i++) { byte v = gray[i]; int o = i * 4; thumbPixBuf[o] = v; thumbPixBuf[o + 1] = v; thumbPixBuf[o + 2] = v; thumbPixBuf[o + 3] = 255; }
+        fixed (byte* p = thumbPixBuf)
+        {
+            using var img = SKImage.FromPixelCopy(new SKImageInfo(gw, gh, SKColorType.Bgra8888, SKAlphaType.Premul), (IntPtr)p, gw * 4);
+            c.DrawImage(img, new SKRect(0, 0, gw, gh), dst);
+        }
+    }
+
     public void Dispose()
     {
         offSurf?.Dispose(); if (offPin.IsAllocated) offPin.Free();
         bgCache?.Dispose(); bgImage?.Dispose(); bgPaint.Dispose();
+        thumbBg.Dispose(); thumbBorder.Dispose(); thumbLabel.Dispose();
     }
 }
