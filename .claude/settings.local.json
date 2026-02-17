@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.openvino.ai)",
+      "WebFetch(domain:github.com)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet build:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(python -c:*)",
+      "Bash(/tmp/inspect/Program.cs:*)",
+      "Bash(__NEW_LINE_ea6b17f2c003ec2b__ cd /tmp/inspect)",
+      "Bash(dotnet run:*)",
+      "Bash(/tmp/inspect/inspect.csproj:*)",
+      "Bash(__NEW_LINE_1a2b4b12760d0b4f__ cd /tmp/inspect)",
+      "Bash(__NEW_LINE_8de0dcc1aefbdfb1__ cd /tmp/inspect)"
+    ]
+  }
+}
