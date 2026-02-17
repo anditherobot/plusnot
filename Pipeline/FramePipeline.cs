@@ -55,6 +55,7 @@ public sealed class FramePipeline : IDisposable
         using var mat = new Mat(); using var bgra = new Mat();
         bool srcSet = false; int fc = 0; double lastFt = 0; int pend = 0;
         byte[]? px = null; float[] wav = new float[256];
+        int segFrame = 0; byte[]? prevRawMask = null, prevMaskCopy = null, smoothMask = null;
 
         while (running)
         {
@@ -79,8 +80,19 @@ public sealed class FramePipeline : IDisposable
                 else disp.BeginInvoke(() => cb?.Invoke($"Capturing... {cnt}/{tot}"));
             }
 
-            if (SegmentationEnabled && !capBg) seg.SubmitFrame(mat, w, h);
+            if (SegmentationEnabled && !capBg && (++segFrame & 1) == 0) seg.SubmitFrame(mat, w, h);
             byte[]? mask = (SegmentationEnabled && !capBg) ? seg.GetLatestMask() : null;
+            if (mask != null && mask != prevRawMask)
+            {
+                if (smoothMask == null || smoothMask.Length != mask.Length) smoothMask = new byte[mask.Length];
+                if (prevMaskCopy != null && prevMaskCopy.Length == mask.Length)
+                    for (int i = 0; i < mask.Length; i++) smoothMask[i] = (byte)(mask[i] * 0.7f + prevMaskCopy[i] * 0.3f);
+                else Buffer.BlockCopy(mask, 0, smoothMask, 0, mask.Length);
+                if (prevMaskCopy == null || prevMaskCopy.Length != mask.Length) prevMaskCopy = new byte[mask.Length];
+                Buffer.BlockCopy(smoothMask, 0, prevMaskCopy, 0, smoothMask.Length);
+                prevRawMask = mask;
+            }
+            if (smoothMask != null) mask = smoothMask;
 
             Cv2.CvtColor(mat, bgra, ColorConversionCodes.BGR2BGRA);
             int need = w * h * 4;

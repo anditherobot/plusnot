@@ -20,7 +20,7 @@ public partial class MainWindow : Window
     void Window_Closing(object? s, CancelEventArgs e) { p?.Stop(); p?.Dispose(); }
 
     void BtnCam_Click(object s, RoutedEventArgs e) => p?.OpenCameraSettings();
-    void BtnBg_Click(object s, RoutedEventArgs e) { var d = new OpenFileDialog { Filter = "Images|*.jpg;*.png;*.bmp" }; if (d.ShowDialog() == true) p?.SetBackground(d.FileName); }
+    void BtnBg_Click(object s, RoutedEventArgs e) { var d = new OpenFileDialog { Filter = "Images|*.jpg;*.png;*.bmp" }; if (d.ShowDialog() == true) { p?.SetBackground(d.FileName); BtnCaptureBg_Click(s, e); } }
     void BtnTuning_Click(object s, RoutedEventArgs e) => TuningPanel.Visibility = TuningPanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
 
     void CmbModel_Changed(object s, SelectionChangedEventArgs e)

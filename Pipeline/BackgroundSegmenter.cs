@@ -18,6 +18,8 @@ public sealed class BackgroundSegmenter : IDisposable
     private Thread? thread;
     private Mat? pending, submitBuf;
     private int pw, ph;
+    private DenseTensor<float>? tensorBuf; private int tensorBufSize;
+    private string? inputName; private byte[]? extractBuf;
 
     private Mat? refBg;
     private volatile bool useRef;
@@ -47,6 +49,7 @@ public sealed class BackgroundSegmenter : IDisposable
             var o = new SessionOptions { GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL, InterOpNumThreads = Math.Max(1, t / 2), IntraOpNumThreads = t };
             o.EnableMemoryPattern = true;
             session = new InferenceSession(path, o); model = m;
+            inputName = session.InputMetadata.Keys.First(); tensorBuf = null; extractBuf = null;
         }
         return true;
     }
@@ -101,10 +104,10 @@ public sealed class BackgroundSegmenter : IDisposable
             if (session == null) return null;
             int sz = Models[model].size;
             using var resized = new Mat(); Cv2.Resize(cam, resized, new Size(sz, sz));
-            var tensor = new DenseTensor<float>(new[] { 1, 3, sz, sz });
-            FillTensor(resized, tensor, sz);
+            if (tensorBuf == null || tensorBufSize != sz) { tensorBuf = new DenseTensor<float>(new[] { 1, 3, sz, sz }); tensorBufSize = sz; }
+            FillTensor(resized, tensorBuf, sz);
 
-            var inp = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(session.InputMetadata.Keys.First(), tensor) };
+            var inp = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(inputName!, tensorBuf) };
             using var res = session.Run(inp);
             var outT = res.First().AsTensor<float>();
             var mask = ExtractMask(outT, sz);
@@ -126,7 +129,7 @@ public sealed class BackgroundSegmenter : IDisposable
                 using var kern = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(5, 5));
                 using var dil = new Mat(); Cv2.Dilate(bin, dil, kern);
                 using var dr = new Mat(); Cv2.Resize(dil, dr, new Size(proc.Cols, proc.Rows));
-                diffResult = new Mat(); Cv2.BitwiseAnd(proc, dr, diffResult);
+                diffResult = new Mat(); Cv2.Max(proc, dr, diffResult);
                 final_ = diffResult;
             }
 
@@ -140,11 +143,18 @@ public sealed class BackgroundSegmenter : IDisposable
 
     void PostProcess(Mat src, Mat dst)
     {
-        Mat cur = src; Mat? t1 = null, t2 = null;
+        Mat cur = src; Mat? t1 = null, t2 = null, t3 = null;
+
+        // Close (fill holes in hair/fingers) then Open (remove small noise blobs)
+        t3 = new Mat();
+        using (var ck = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(7, 7))) Cv2.MorphologyEx(cur, t3, MorphTypes.Close, ck);
+        using (var ok = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(3, 3))) Cv2.MorphologyEx(t3, t3, MorphTypes.Open, ok);
+        cur = t3;
+
         int th = MaskThreshold; if (th > 0) { t1 = new Mat(); Cv2.Threshold(cur, t1, th, 255, ThresholdTypes.Binary); cur = t1; }
         int er = FeatherErode; if (er > 0) { t2 = new Mat(); var k = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(er * 2 + 1, er * 2 + 1)); Cv2.Erode(cur, t2, k); cur = t2; }
         int bl = BlurSize; if (bl > 1) { int k = bl | 1; Cv2.GaussianBlur(cur, dst, new Size(k, k), k / 3.0); } else cur.CopyTo(dst);
-        t1?.Dispose(); t2?.Dispose();
+        t1?.Dispose(); t2?.Dispose(); t3?.Dispose();
     }
 
     unsafe void FillTensor(Mat m, DenseTensor<float> tensor, int sz)
@@ -165,7 +175,7 @@ public sealed class BackgroundSegmenter : IDisposable
 
     byte[] ExtractMask(Tensor<float> o, int sz)
     {
-        var m = new byte[sz * sz];
+        int mLen = sz * sz; if (extractBuf == null || extractBuf.Length != mLen) extractBuf = new byte[mLen]; var m = extractBuf;
         if (model == SegmentationModel.SINet) { for (int y = 0; y < sz; y++) for (int x = 0; x < sz; x++) m[y * sz + x] = (byte)(Math.Clamp(o[0, 1, y, x], 0f, 1f) * 255); }
         else { for (int i = 0; i < m.Length; i++) m[i] = (byte)(Math.Clamp(o.GetValue(i), 0f, 1f) * 255); }
         return m;

@@ -13,6 +13,7 @@ public sealed class Compositor : IDisposable
     private int cacheW, cacheH;
     private readonly HudRenderer hud = new();
     private readonly WaveformRenderer wave = new();
+    private readonly SKPaint bgPaint = new() { ImageFilter = SKImageFilter.CreateBlur(4, 4) };
     private byte[]? offBuf; private GCHandle offPin; private SKSurface? offSurf; private int offW, offH;
 
     public WriteableBitmap EnsureBitmap(int w, int h)
@@ -23,6 +24,22 @@ public sealed class Compositor : IDisposable
     }
 
     public void SetBackground(string path) { bgImage?.Dispose(); bgCache?.Dispose(); bgCache = null; bgImage = SKBitmap.Decode(path); }
+
+    public unsafe void SetBackgroundFromBgr(IntPtr bgrData, int w, int h, int step)
+    {
+        bgImage?.Dispose(); bgCache?.Dispose(); bgCache = null;
+        bgImage = new SKBitmap(new SKImageInfo(w, h, SKColorType.Bgra8888, SKAlphaType.Premul));
+        byte* src = (byte*)bgrData, dst = (byte*)bgImage.GetPixels();
+        for (int y = 0; y < h; y++)
+        {
+            byte* sRow = src + y * step, dRow = dst + y * w * 4;
+            for (int x = 0; x < w; x++)
+            {
+                int s = x * 3, d = x * 4;
+                dRow[d] = sRow[s]; dRow[d + 1] = sRow[s + 1]; dRow[d + 2] = sRow[s + 2]; dRow[d + 3] = 255;
+            }
+        }
+    }
 
     SKBitmap? ResizedBg(int w, int h)
     {
@@ -66,9 +83,9 @@ public sealed class Compositor : IDisposable
         var c = offSurf!.Canvas; c.Clear(SKColors.Black);
         if (bgImage != null && mask != null)
         {
-            var bg = ResizedBg(w, h); if (bg != null) c.DrawBitmap(bg, 0, 0);
+            var bg = ResizedBg(w, h); if (bg != null) c.DrawBitmap(bg, 0, 0, bgPaint);
             int n = Math.Min(mask.Length, px.Length / 4);
-            for (int i = 0; i < n; i++) px[i * 4 + 3] = mask[i];
+            unsafe { fixed (byte* pp = px, mp = mask) { byte* pe = pp + n * 4; byte* m = mp; for (byte* p = pp + 3; p < pe; p += 4) *p = *m++; } }
             Blit(c, px, w, h, SKAlphaType.Unpremul);
         }
         else Blit(c, px, w, h, SKAlphaType.Premul);
@@ -93,6 +110,6 @@ public sealed class Compositor : IDisposable
     public void Dispose()
     {
         offSurf?.Dispose(); if (offPin.IsAllocated) offPin.Free();
-        bgCache?.Dispose(); bgImage?.Dispose();
+        bgCache?.Dispose(); bgImage?.Dispose(); bgPaint.Dispose();
     }
 }

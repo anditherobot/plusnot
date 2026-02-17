@@ -15,7 +15,7 @@ public sealed class HudRenderer
     readonly SKPaint boxBorder = new() { Color = new SKColor(0, 255, 204, 100), StrokeWidth = 1, IsAntialias = true, Style = SKPaintStyle.Stroke };
     readonly SKPaint boxText = new() { Color = new SKColor(0, 255, 204, 180), Typeface = SKTypeface.FromFamilyName("Consolas"), TextSize = 12, IsAntialias = true };
 
-    int fc; double lastFt, fps;
+    int fc; double lastFt, fps; float timerWidth; string cachedRes = "", cachedFps = "FPS: 0.0"; int cachedW, cachedH;
     readonly string[] stars;
     readonly List<string> lines = new();
     double lastStar; int starIdx;
@@ -29,7 +29,7 @@ public sealed class HudRenderer
     public void Draw(SKCanvas c, int w, int h, double t, bool segOn = true, string model = "")
     {
         fc++;
-        if (t - lastFt >= 1) { fps = fc / (t - lastFt); fc = 0; lastFt = t; }
+        if (t - lastFt >= 1) { fps = fc / (t - lastFt); fc = 0; lastFt = t; cachedFps = $"FPS: {fps:F1}"; }
 
         int ins = 30, arm = 60;
         byte pa = (byte)(180 + 75 * Math.Sin(t * 2));
@@ -55,12 +55,14 @@ public sealed class HudRenderer
         // Data readouts
         float tx = ins + 10, ty = ins + arm + 20;
         c.DrawText("SYS: ONLINE", tx, ty, text);
-        c.DrawText($"FPS: {fps:F1}", tx, ty + 18, text);
-        c.DrawText($"RES: {w}x{h}", tx, ty + 36, text);
+        c.DrawText(cachedFps, tx, ty + 18, text);
+        if (w != cachedW || h != cachedH) { cachedRes = $"RES: {w}x{h}"; cachedW = w; cachedH = h; }
+        c.DrawText(cachedRes, tx, ty + 36, text);
 
         // Large timer top-right
         var ts = DateTime.Now.ToString("HH:mm:ss.ff");
-        c.DrawText(ts, w - ins - 10 - timer.MeasureText(ts), ins + 30, timer);
+        if (timerWidth <= 0) timerWidth = timer.MeasureText(ts);
+        c.DrawText(ts, w - ins - 10 - timerWidth, ins + 30, timer);
 
         // Seg status
         c.DrawText($"SEG: {(segOn ? "ON" : "OFF")}", tx, h - 100, text);
