@@ -295,9 +295,9 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
   <div class="shell">
     <div class="hero-inner">
       <div class="hero-text section-reveal">
-        <div class="overline">No green screen needed</div>
-        <h1>Kill Your <em>Green Screen</em></h1>
-        <p>plusnot watches your webcam, figures out what's you and what's background, and swaps the background in real time. Just open it and go.</p>
+        <div class="overline">Background swapper for your webcam</div>
+        <h1>Look like you're <em>anywhere</em></h1>
+        <p>Put yourself in front of any image. Like a movie green screen, but you don't need one. Just your webcam. Works live for streaming, Zoom, Teams, whatever.</p>
         <div class="hero-buttons">
           <a href="#pricing" class="btn-primary">Download for Windows</a>
           <a href="#" class="btn-secondary">View on GitHub</a>
@@ -329,8 +329,8 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
 <section class="beforeafter section-reveal" id="beforeafter">
   <div class="shell">
     <div class="section-tag">The idea</div>
-    <h2 class="section-head">Your room is <span>messy</span>. Nobody has to know.</h2>
-    <p class="section-sub">plusnot separates you from your background using AI, then puts you in front of any image you want. It happens live, every frame, at 60fps.</p>
+    <h2 class="section-head">Swap your <span>background</span>. Keep yourself.</h2>
+    <p class="section-sub">You're on camera. Your room looks terrible. plusnot cuts you out and puts you in front of whatever image you want. Live, every frame.</p>
     <div class="ba-row">
       <div class="ba-box ba-before">
         <div class="ba-label">Your webcam</div>
@@ -366,38 +366,38 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
 <!-- ===== PIPELINE DIAGRAM ===== -->
 <section class="pipeline section-reveal" id="pipeline">
   <div class="shell">
-    <div class="section-tag">Under the hood</div>
-    <h2 class="section-head">What happens <span>each frame</span></h2>
-    <p class="section-sub">Every frame from your camera goes through this pipeline. It all happens fast enough that you don't notice any delay.</p>
+    <div class="section-tag">How it works</div>
+    <h2 class="section-head">Five things happen <span>every frame</span></h2>
+    <p class="section-sub">Your camera sends a picture. The app figures out where you are, removes everything else, and drops in your chosen background. You never notice it happening.</p>
     <div class="pipe-flow">
       <div class="pipe-node">
         <span class="pipe-node-icon">&#x1F3A5;</span>
         <div class="pipe-node-title">Camera</div>
-        <div class="pipe-node-desc">Grabs a frame</div>
+        <div class="pipe-node-desc">Takes a picture</div>
       </div>
       <div class="pipe-arrow"><div class="pipe-arrow-inner"></div></div>
       <div class="pipe-node">
         <span class="pipe-node-icon">&#x1F9E0;</span>
-        <div class="pipe-node-title">AI Model</div>
-        <div class="pipe-node-desc">Finds you</div>
+        <div class="pipe-node-title">Detect</div>
+        <div class="pipe-node-desc">Finds you in it</div>
       </div>
       <div class="pipe-arrow"><div class="pipe-arrow-inner"></div></div>
       <div class="pipe-node">
-        <span class="pipe-node-icon">&#x2B1B;</span>
-        <div class="pipe-node-title">Mask</div>
-        <div class="pipe-node-desc">Cleans edges</div>
+        <span class="pipe-node-icon">&#x2702;</span>
+        <div class="pipe-node-title">Cut Out</div>
+        <div class="pipe-node-desc">Removes the rest</div>
       </div>
       <div class="pipe-arrow"><div class="pipe-arrow-inner"></div></div>
       <div class="pipe-node">
         <span class="pipe-node-icon">&#x1F5BC;</span>
-        <div class="pipe-node-title">Composite</div>
-        <div class="pipe-node-desc">Swaps background</div>
+        <div class="pipe-node-title">Swap</div>
+        <div class="pipe-node-desc">Drops in new bg</div>
       </div>
       <div class="pipe-arrow"><div class="pipe-arrow-inner"></div></div>
       <div class="pipe-node">
         <span class="pipe-node-icon">&#x1F4FA;</span>
-        <div class="pipe-node-title">Display</div>
-        <div class="pipe-node-desc">You see it</div>
+        <div class="pipe-node-title">Show</div>
+        <div class="pipe-node-desc">You see it live</div>
       </div>
     </div>
   </div>
@@ -407,14 +407,14 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
 <section class="features section-reveal" id="features">
   <div class="shell">
     <div class="section-tag">Features</div>
-    <h2 class="section-head">What you <span>get</span></h2>
-    <p class="section-sub">Everything you need to look professional on camera, without buying anything.</p>
+    <h2 class="section-head">What's <span>in the box</span></h2>
+    <p class="section-sub">Everything you need to look like you're streaming from a real studio.</p>
     <div class="feature-grid">
 
       <div class="feature-card">
         <div class="feature-icon">&#x25C8;</div>
-        <h3>AI Background Removal</h3>
-        <p>Three AI models built in. Each one looks at your camera and figures out which pixels are you. Pick the one that works best for your setup.</p>
+        <h3>Background Removal</h3>
+        <p>Three built-in modes for cutting you out of your background. Some work better for certain lighting. Try them, pick the one that looks best.</p>
         <div class="feat-mini">
           <div class="feat-mini-row">
             <div class="feat-mini-box active">MediaPipe</div>
@@ -426,8 +426,8 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
 
       <div class="feature-card">
         <div class="feature-icon">&#x25B7;</div>
-        <h3>Real-Time Compositing</h3>
-        <p>Your camera feed is processed and composited onto your chosen background every single frame. Smooth enough for live calls and streaming.</p>
+        <h3>Runs Live</h3>
+        <p>Not a recording tool. This runs live on your webcam while you stream, call, or present. Smooth enough that nobody notices.</p>
         <div class="feat-mini">
           <div class="feat-mini-bar">
             <span class="filled"></span><span class="filled"></span><span class="filled"></span>
@@ -440,8 +440,8 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
 
       <div class="feature-card">
         <div class="feature-icon">&#x2609;</div>
-        <h3>Calibration Wizard</h3>
-        <p>A step-by-step guide walks you through setup. Capture your empty room, step in, and it automatically finds the best settings.</p>
+        <h3>Easy Setup</h3>
+        <p>A wizard walks you through it. Show it your empty room, step back in, and it figures out the best settings on its own.</p>
         <div class="feat-mini">
           <div class="feat-steps-mini">
             <div class="feat-step-dot done">1</div>
@@ -457,8 +457,8 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
 
       <div class="feature-card">
         <div class="feature-icon">&#x2592;</div>
-        <h3>Edge Tuning</h3>
-        <p>Drag sliders to control how tight, soft, or sharp the edges around you look. See the changes instantly with live debug previews.</p>
+        <h3>Clean Edges</h3>
+        <p>If the outline around you looks rough, drag a few sliders to make it tighter or softer. You see the change instantly.</p>
         <div class="feat-mini">
           <div class="feat-slider-mini">
             <div class="feat-slider-row">
@@ -479,8 +479,8 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
 
       <div class="feature-card">
         <div class="feature-icon">&#x29BF;</div>
-        <h3>Scene Detection</h3>
-        <p>Compares what your camera sees now to the empty room you captured earlier. Helps the AI tell what's background and what moved.</p>
+        <h3>Knows Your Room</h3>
+        <p>It remembers what your empty room looks like. So when you're in the frame, it knows exactly what's you and what's wall.</p>
         <div class="feat-mini">
           <div class="feat-diff-mini">
             <div class="feat-diff-frame">Empty</div>
@@ -494,8 +494,8 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
 
       <div class="feature-card">
         <div class="feature-icon">&#x2710;</div>
-        <h3>Manual Brush</h3>
-        <p>If the AI gets something wrong, paint over it. Mark areas as "always me" or "always background" with an adjustable brush.</p>
+        <h3>Fix It Yourself</h3>
+        <p>Sometimes it gets a spot wrong. Just paint over it — "this is me" or "this is background." Done.</p>
         <div class="feat-mini">
           <div class="feat-brush-mini">
             <div class="feat-brush-circle sm"></div>
@@ -513,30 +513,30 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
 <section class="how section-reveal" id="how">
   <div class="shell">
     <div class="section-tag">Workflow</div>
-    <h2 class="section-head">Four steps. <span class="mg">That's it.</span></h2>
+    <h2 class="section-head">Up and running in <span class="mg">two minutes</span></h2>
     <div class="steps" id="stepsRow">
       <div class="step">
         <div class="step-dot">1</div>
         <h3>Launch</h3>
-        <p>Open the app. Your camera turns on automatically.</p>
+        <p>Open plusnot. Pick a background image.</p>
       </div>
       <div class="step-line"></div>
       <div class="step">
         <div class="step-dot">2</div>
         <h3>Calibrate</h3>
-        <p>The wizard captures your empty room and learns what "background" looks like.</p>
+        <p>Step away from the camera, let it see your empty room, step back in.</p>
       </div>
       <div class="step-line"></div>
       <div class="step">
         <div class="step-dot">3</div>
-        <h3>Tune</h3>
-        <p>Move some sliders until the edges look right. Takes about 30 seconds.</p>
+        <h3>Adjust</h3>
+        <p>Tweak a few sliders if you want cleaner edges. Or just leave it.</p>
       </div>
       <div class="step-line"></div>
       <div class="step">
         <div class="step-dot">4</div>
         <h3>Go Live</h3>
-        <p>Done. Use it for Zoom, OBS, Teams, or whatever you stream with.</p>
+        <p>Open OBS, Zoom, or Teams. You're streaming from a studio now.</p>
       </div>
     </div>
   </div>
@@ -545,7 +545,7 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
 <!-- ===== SPECS ===== -->
 <section class="specs section-reveal" id="specs">
   <div class="shell">
-    <div class="section-tag">What you need</div>
+    <div class="section-tag">Requirements</div>
     <div class="spec-terminal bracketed">
       <div class="spec-bar">
         <div class="spec-bar-dot"></div>
@@ -570,18 +570,18 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
 <section class="pricing section-reveal" id="pricing">
   <div class="shell">
     <div class="section-tag" style="justify-content:center">Get it</div>
-    <h2 class="section-head">Free. <span>Open source.</span> No catch.</h2>
+    <h2 class="section-head">It's <span>free</span>. Seriously.</h2>
     <div class="price-card bracketed">
       <div class="price-amount">$0</div>
       <div class="price-label">Forever</div>
-      <h3>Everything Included</h3>
+      <h3>The Whole Thing</h3>
       <ul class="price-features">
-        <li>All three AI models</li>
-        <li>Step-by-step calibration wizard</li>
-        <li>Live edge tuning with previews</li>
-        <li>Manual paint brush for fixes</li>
-        <li>Sci-fi HUD overlay</li>
-        <li>Full source code on GitHub</li>
+        <li>Background removal &amp; swap</li>
+        <li>Works with any webcam</li>
+        <li>Setup wizard included</li>
+        <li>Edge cleanup tools</li>
+        <li>Works with OBS, Zoom, Teams</li>
+        <li>Source code on GitHub</li>
       </ul>
       <a href="#" class="btn-primary">Download for Windows</a>
     </div>
