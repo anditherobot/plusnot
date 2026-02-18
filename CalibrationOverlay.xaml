@@ -1,0 +1,264 @@
+<UserControl x:Class="plusnot.CalibrationOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#CC0A0A1A">
+
+    <UserControl.Resources>
+        <Style x:Key="WizSlider" TargetType="Slider">
+            <Setter Property="Margin" Value="0,2,0,6" />
+            <Setter Property="IsSnapToTickEnabled" Value="True" />
+            <Setter Property="TickFrequency" Value="1" />
+        </Style>
+        <Style x:Key="WizLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#00FFCC" />
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+        </Style>
+        <Style x:Key="WizSection" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#00FFCC" />
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Margin" Value="0,8,0,4" />
+        </Style>
+        <Style x:Key="WizCheck" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#00FFCC" />
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Margin" Value="0,4" />
+        </Style>
+        <Style x:Key="WizExplainer" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#556666" />
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Step Indicator Bar -->
+        <StackPanel x:Name="StepIndicator" Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,8">
+            <Border x:Name="StepDot1" Width="28" Height="28" CornerRadius="14" Background="#00FFCC" BorderBrush="#00FFCC" BorderThickness="2">
+                <TextBlock Text="1" Foreground="#0A0A1A" FontFamily="Consolas" FontSize="12" FontWeight="Bold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <Rectangle x:Name="StepLine1" Width="40" Height="2" Fill="#334444" VerticalAlignment="Center"/>
+            <Border x:Name="StepDot2" Width="28" Height="28" CornerRadius="14" Background="Transparent" BorderBrush="#334444" BorderThickness="2">
+                <TextBlock Text="2" Foreground="#556666" FontFamily="Consolas" FontSize="12" FontWeight="Bold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <Rectangle x:Name="StepLine2" Width="40" Height="2" Fill="#334444" VerticalAlignment="Center"/>
+            <Border x:Name="StepDot3" Width="28" Height="28" CornerRadius="14" Background="Transparent" BorderBrush="#334444" BorderThickness="2">
+                <TextBlock Text="3" Foreground="#556666" FontFamily="Consolas" FontSize="12" FontWeight="Bold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <Rectangle x:Name="StepLine3" Width="40" Height="2" Fill="#334444" VerticalAlignment="Center"/>
+            <Border x:Name="StepDot4" Width="28" Height="28" CornerRadius="14" Background="Transparent" BorderBrush="#334444" BorderThickness="2">
+                <TextBlock Text="4" Foreground="#556666" FontFamily="Consolas" FontSize="12" FontWeight="Bold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+        </StackPanel>
+
+        <!-- Step 1: Load Background Image -->
+        <StackPanel x:Name="LoadBgPanel" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="LOAD BACKGROUND IMAGE" Style="{StaticResource WizardTitle}" />
+            <TextBlock Text="Pick a replacement background or skip to use default" Style="{StaticResource WizardSubtitle}" />
+            <Image x:Name="BgThumbnail" Width="320" Height="240" Stretch="Uniform" HorizontalAlignment="Center"
+                   Margin="0,8" Visibility="Collapsed" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                <Button Content="Choose Image" Style="{StaticResource WizardButton}" Click="BtnChooseBg_Click" />
+                <Button Content="Skip" Style="{StaticResource WizardButton}" Click="BtnSkipBg_Click" />
+            </StackPanel>
+            <Button Content="Cancel" Style="{StaticResource ToolbarButton}" HorizontalAlignment="Center" Margin="0,16,0,0" Click="BtnCancel_Click" />
+        </StackPanel>
+
+        <!-- Step 2: Capture Empty Scene -->
+        <StackPanel x:Name="CaptureEmptyPanel" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
+            <TextBlock Text="CAPTURE EMPTY SCENE" Style="{StaticResource WizardTitle}" />
+            <TextBlock Text="Step away from the camera — the scene will be captured" Style="{StaticResource WizardSubtitle}" />
+            <TextBlock x:Name="EmptyStatus" Text="" Foreground="#88CCBB" FontFamily="Consolas" FontSize="16"
+                       HorizontalAlignment="Center" Margin="0,4" />
+            <TextBlock x:Name="EmptyCountdown" Text="" Foreground="#00FFCC" FontFamily="Consolas" FontSize="72"
+                       FontWeight="Bold" HorizontalAlignment="Center" Margin="0,8" />
+            <Image x:Name="EmptyThumbnail" Width="320" Height="240" Stretch="Uniform" HorizontalAlignment="Center"
+                   Margin="0,8" Visibility="Collapsed" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                <Button Content="Back" Style="{StaticResource WizardButton}" Click="BtnBackToStep1_Click" />
+                <Button x:Name="BtnCaptureEmpty" Content="Capture" Style="{StaticResource WizardButton}" Click="BtnCaptureEmpty_Click" />
+                <Button x:Name="BtnSkipEmpty" Content="Skip" Style="{StaticResource WizardButton}" Click="BtnSkipEmpty_Click" />
+                <Button x:Name="BtnNextToHuman" Content="Next" Style="{StaticResource WizardButton}" Click="BtnNextToHuman_Click" Visibility="Collapsed" />
+                <Button x:Name="BtnFinishEmpty" Content="Finish" Style="{StaticResource WizardButton}" Click="BtnFinishCaptures_Click" Visibility="Collapsed" />
+            </StackPanel>
+            <Button Content="Cancel" Style="{StaticResource ToolbarButton}" HorizontalAlignment="Center" Margin="0,16,0,0" Click="BtnCancel_Click" />
+        </StackPanel>
+
+        <!-- Step 3: Capture Human in Scene -->
+        <StackPanel x:Name="CaptureHumanPanel" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
+            <TextBlock Text="CAPTURE HUMAN IN SCENE" Style="{StaticResource WizardTitle}" />
+            <TextBlock Text="Step INTO the frame — your silhouette will be detected" Style="{StaticResource WizardSubtitle}" />
+            <TextBlock x:Name="HumanStatus" Text="" Foreground="#88CCBB" FontFamily="Consolas" FontSize="16"
+                       HorizontalAlignment="Center" Margin="0,4" />
+            <TextBlock x:Name="HumanCountdown" Text="" Foreground="#00FFCC" FontFamily="Consolas" FontSize="72"
+                       FontWeight="Bold" HorizontalAlignment="Center" Margin="0,8" />
+            <!-- 3 thumbnails side by side -->
+            <StackPanel x:Name="HumanThumbnails" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8" Visibility="Collapsed">
+                <StackPanel Margin="8,0">
+                    <TextBlock Text="Empty" Foreground="#88CCBB" FontFamily="Consolas" FontSize="10" HorizontalAlignment="Center" />
+                    <Border BorderBrush="#00FFCC" BorderThickness="1" Background="#10101E">
+                        <Image x:Name="HumanThumbEmpty" Width="200" Height="150" Stretch="Uniform" />
+                    </Border>
+                </StackPanel>
+                <StackPanel Margin="8,0">
+                    <TextBlock Text="With Person" Foreground="#88CCBB" FontFamily="Consolas" FontSize="10" HorizontalAlignment="Center" />
+                    <Border BorderBrush="#00FFCC" BorderThickness="1" Background="#10101E">
+                        <Image x:Name="HumanThumbPerson" Width="200" Height="150" Stretch="Uniform" />
+                    </Border>
+                </StackPanel>
+                <StackPanel Margin="8,0">
+                    <TextBlock Text="Silhouette" Foreground="#88CCBB" FontFamily="Consolas" FontSize="10" HorizontalAlignment="Center" />
+                    <Border BorderBrush="#00AA88" BorderThickness="1" Background="#10101E">
+                        <Image x:Name="HumanThumbSilhouette" Width="200" Height="150" Stretch="Uniform" />
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+            <TextBlock x:Name="SilhouetteQuality" Text="" Foreground="#00FFCC" FontFamily="Consolas" FontSize="14"
+                       HorizontalAlignment="Center" Margin="0,4" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                <Button Content="Back" Style="{StaticResource WizardButton}" Click="BtnBackToStep2_Click" />
+                <Button x:Name="BtnCaptureHuman" Content="Capture" Style="{StaticResource WizardButton}" Click="BtnCaptureHuman_Click" />
+                <Button x:Name="BtnSkipHuman" Content="Skip" Style="{StaticResource WizardButton}" Click="BtnSkipHuman_Click" />
+                <Button x:Name="BtnFinishHuman" Content="Finish" Style="{StaticResource WizardButton}" Click="BtnFinishCaptures_Click" Visibility="Collapsed" />
+            </StackPanel>
+            <Button Content="Cancel" Style="{StaticResource ToolbarButton}" HorizontalAlignment="Center" Margin="0,16,0,0" Click="BtnCancel_Click" />
+        </StackPanel>
+
+        <!-- Step 4: Results & Tuning -->
+        <Grid x:Name="TunePanel" Grid.Row="1" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="RESULTS &amp; TUNING" Style="{StaticResource WizardTitle}" Margin="0,4,0,4" />
+
+            <!-- Top row: debug masks left, final preview right -->
+            <Grid Grid.Row="1" Margin="20,0,20,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Debug mask thumbnails + silhouette ref -->
+                <StackPanel Grid.Column="0">
+                    <UniformGrid Columns="3" MaxHeight="160">
+                        <Border BorderBrush="#00FFCC" BorderThickness="1" Margin="4" Background="#10101E">
+                            <Grid>
+                                <Image x:Name="MaskAI" Stretch="Uniform" />
+                                <TextBlock Text="AI Raw" Foreground="#00FFCC" FontFamily="Consolas" FontSize="10"
+                                           VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="4" />
+                            </Grid>
+                        </Border>
+                        <Border BorderBrush="#00FFCC" BorderThickness="1" Margin="4" Background="#10101E">
+                            <Grid>
+                                <Image x:Name="MaskPost" Stretch="Uniform" />
+                                <TextBlock Text="Cleanup" Foreground="#00FFCC" FontFamily="Consolas" FontSize="10"
+                                           VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="4" />
+                            </Grid>
+                        </Border>
+                        <Border BorderBrush="#00FFCC" BorderThickness="1" Margin="4" Background="#10101E">
+                            <Grid>
+                                <Image x:Name="MaskDiff" Stretch="Uniform" />
+                                <TextBlock Text="BG Diff" Foreground="#00FFCC" FontFamily="Consolas" FontSize="10"
+                                           VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="4" />
+                            </Grid>
+                        </Border>
+                    </UniformGrid>
+                    <!-- Silhouette reference thumbnail (if Step 3 was done) -->
+                    <Border x:Name="SilhouetteRefBorder" BorderBrush="#00AA88" BorderThickness="1" Margin="4,4,4,0"
+                            Background="#10101E" MaxWidth="160" MaxHeight="120" HorizontalAlignment="Left" Visibility="Collapsed">
+                        <Grid>
+                            <Image x:Name="SilhouetteRef" Stretch="Uniform" />
+                            <TextBlock Text="Silhouette Ref" Foreground="#00AA88" FontFamily="Consolas" FontSize="10"
+                                       VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="4" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Final Output preview -->
+                <Border Grid.Column="1" BorderBrush="#00FFCC" BorderThickness="2" Margin="8,4" Background="#10101E"
+                        Width="320" Height="240">
+                    <Grid>
+                        <Image x:Name="FinalPreview" Stretch="Uniform" />
+                        <TextBlock Text="Final Output" Foreground="#00FFCC" FontFamily="Consolas" FontSize="11" FontWeight="Bold"
+                                   VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="4" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Controls: 3 columns with explainers -->
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="20,0">
+                <UniformGrid Columns="3">
+                    <!-- Column 1: Edge Quality -->
+                    <StackPanel Margin="8,0">
+                        <TextBlock Text="EDGE QUALITY" Style="{StaticResource WizSection}" />
+                        <TextBlock Style="{StaticResource WizLabel}"><Run Text="Edge Shrink: " /><Run x:Name="WizLblEdgeShrink" Text="0" /></TextBlock>
+                        <Slider x:Name="WizSliderEdgeShrink" Style="{StaticResource WizSlider}" Minimum="0" Maximum="20" Value="0" ValueChanged="WizSliderEdgeShrink_Changed" />
+                        <TextBlock Text="Contracts mask boundary inward" Style="{StaticResource WizExplainer}" />
+                        <TextBlock Style="{StaticResource WizLabel}"><Run Text="Edge Softness: " /><Run x:Name="WizLblEdgeSoftness" Text="7" /></TextBlock>
+                        <Slider x:Name="WizSliderEdgeSoftness" Style="{StaticResource WizSlider}" Minimum="0" Maximum="21" Value="7" TickFrequency="2" SmallChange="2" LargeChange="4" ValueChanged="WizSliderEdgeSoftness_Changed" />
+                        <TextBlock Text="Blurs mask edges for natural blend" Style="{StaticResource WizExplainer}" />
+                        <TextBlock Style="{StaticResource WizLabel}"><Run Text="Mask Hardness: " /><Run x:Name="WizLblMaskHardness" Text="0" /></TextBlock>
+                        <Slider x:Name="WizSliderMaskHardness" Style="{StaticResource WizSlider}" Minimum="0" Maximum="100" Value="0" ValueChanged="WizSliderMaskHardness_Changed" />
+                        <TextBlock Text="Pushes toward hard cutout" Style="{StaticResource WizExplainer}" />
+                    </StackPanel>
+
+                    <!-- Column 2: Scene Calibration -->
+                    <StackPanel Margin="8,0">
+                        <TextBlock Text="SCENE CALIBRATION" Style="{StaticResource WizSection}" />
+                        <TextBlock Style="{StaticResource WizLabel}"><Run Text="Diff Threshold: " /><Run x:Name="WizLblDiffThresh" Text="25" /></TextBlock>
+                        <Slider x:Name="WizSliderDiffThresh" Style="{StaticResource WizSlider}" Minimum="0" Maximum="100" Value="25" ValueChanged="WizSliderDiffThresh_Changed" />
+                        <TextBlock Text="How different a pixel must be from empty scene" Style="{StaticResource WizExplainer}" />
+                        <TextBlock Style="{StaticResource WizLabel}"><Run Text="Diff Spread: " /><Run x:Name="WizLblDiffSpread" Text="2" /></TextBlock>
+                        <Slider x:Name="WizSliderDiffSpread" Style="{StaticResource WizSlider}" Minimum="0" Maximum="10" Value="2" ValueChanged="WizSliderDiffSpread_Changed" />
+                        <TextBlock Text="Expands diff detection area" Style="{StaticResource WizExplainer}" />
+                        <TextBlock Text="TEMPORAL" Style="{StaticResource WizSection}" />
+                        <TextBlock Style="{StaticResource WizLabel}"><Run Text="Stability: " /><Run x:Name="WizLblStability" Text="70" /></TextBlock>
+                        <Slider x:Name="WizSliderStability" Style="{StaticResource WizSlider}" Minimum="0" Maximum="100" Value="70" ValueChanged="WizSliderStability_Changed" />
+                        <TextBlock Text="Higher=smoother, lower=responsive" Style="{StaticResource WizExplainer}" />
+                    </StackPanel>
+
+                    <!-- Column 3: Manual Brush -->
+                    <StackPanel Margin="8,0">
+                        <TextBlock Text="MANUAL BRUSH" Style="{StaticResource WizSection}" />
+                        <CheckBox x:Name="WizChkBrush" Content="Active" Style="{StaticResource WizCheck}" Checked="WizChkBrush_Changed" Unchecked="WizChkBrush_Changed" />
+                        <TextBlock Text="Paint to force fg/bg" Style="{StaticResource WizExplainer}" />
+                        <StackPanel x:Name="BrushControls" Visibility="Collapsed">
+                            <RadioButton x:Name="RbKeep" Content="Keep (Foreground)" Foreground="#00FFCC" FontFamily="Consolas" FontSize="11"
+                                         IsChecked="True" Margin="0,4" GroupName="BrushMode" />
+                            <RadioButton x:Name="RbErase" Content="Erase (Background)" Foreground="#00FFCC" FontFamily="Consolas" FontSize="11"
+                                         Margin="0,4" GroupName="BrushMode" />
+                            <TextBlock Style="{StaticResource WizLabel}"><Run Text="Brush Size: " /><Run x:Name="WizLblBrushSize" Text="20" /></TextBlock>
+                            <Slider x:Name="WizSliderBrushSize" Style="{StaticResource WizSlider}" Minimum="5" Maximum="80" Value="20" ValueChanged="WizSliderBrushSize_Changed" />
+                            <Button Content="Clear" Style="{StaticResource ToolbarButton}" Margin="0,8" Click="BtnClearBrush_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </UniformGrid>
+            </ScrollViewer>
+
+            <!-- Back / Done buttons -->
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,16">
+                <Button Content="Back" Style="{StaticResource WizardButton}" Click="BtnBackFromTune_Click" />
+                <Button Content="Done" Style="{StaticResource WizardButton}" Click="BtnDone_Click" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -11,14 +11,18 @@ public sealed class AudioCapture : IDisposable
 
     public void Start()
     {
-        waveIn = new WaveInEvent { WaveFormat = new WaveFormat(44100, 16, 1), BufferMilliseconds = 50 };
-        waveIn.DataAvailable += (_, e) =>
+        try
         {
-            lock (lk)
-                for (int i = 0; i + 1 < e.BytesRecorded; i += 2)
-                    ring[pos++ % ring.Length] = (short)(e.Buffer[i] | (e.Buffer[i + 1] << 8)) / 32768f;
-        };
-        waveIn.StartRecording();
+            waveIn = new WaveInEvent { WaveFormat = new WaveFormat(44100, 16, 1), BufferMilliseconds = 50 };
+            waveIn.DataAvailable += (_, e) =>
+            {
+                lock (lk)
+                    for (int i = 0; i + 1 < e.BytesRecorded; i += 2)
+                        ring[pos++ % ring.Length] = (short)(e.Buffer[i] | (e.Buffer[i + 1] << 8)) / 32768f;
+            };
+            waveIn.StartRecording();
+        }
+        catch { waveIn?.Dispose(); waveIn = null; }
     }
 
     public void Fill(float[] dest)
