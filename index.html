@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>plusnot — AI Background Removal. No Green Screen.</title>
+<meta name="description" content="Real-time AI webcam compositing for Windows. Remove your background with neural networks. Free and open source.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --base:#0A0A1A;--surface:#0D0D24;--surface-2:#12123A;--border:#1A1A4A;
+  --cyan:#00FFCC;--cyan-dim:rgba(0,255,204,0.25);--cyan-glow:rgba(0,255,204,0.12);
+  --magenta:#FF00AA;--magenta-dim:rgba(255,0,170,0.25);
+  --blue:#00F0FF;--blue-dim:rgba(0,240,255,0.2);
+  --text:#C8C8E8;--text-bright:#EEEEFF;--text-dim:#6868A8;
+  --display:'Orbitron',sans-serif;--ui:'Rajdhani',sans-serif;--mono:'Share Tech Mono',monospace;
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{background:var(--base);color:var(--text);font-family:var(--ui);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* === OVERLAYS === */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,204,0.012) 2px,rgba(0,255,204,0.012) 4px);pointer-events:none;z-index:10000}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,240,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,240,255,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:-1}
+
+.shell{max-width:1200px;margin:0 auto;padding:0 32px}
+@media(max-width:640px){.shell{padding:0 18px}}
+section{position:relative}
+.section-reveal{opacity:0;transform:translateY(40px);transition:opacity 0.7s cubic-bezier(.22,1,.36,1),transform 0.7s cubic-bezier(.22,1,.36,1)}
+.section-reveal.visible{opacity:1;transform:translateY(0)}
+.bracketed{position:relative}
+.bracketed::before,.bracketed::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--cyan);border-style:solid;border-width:0;opacity:0.4;pointer-events:none}
+.bracketed::before{top:-1px;left:-1px;border-top-width:1px;border-left-width:1px}
+.bracketed::after{bottom:-1px;right:-1px;border-bottom-width:1px;border-right-width:1px}
+.section-tag{font-family:var(--mono);font-size:0.65rem;letter-spacing:4px;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.section-tag::before{content:'';width:24px;height:1px;background:var(--cyan);opacity:0.5}
+.section-head{font-family:var(--display);font-size:clamp(1.4rem,3vw,1.8rem);font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--text-bright);margin-bottom:16px}
+.section-head span{color:var(--cyan)}
+.section-head .mg{color:var(--magenta)}
+.section-sub{font-size:1.1rem;color:var(--text-dim);line-height:1.6;max-width:640px;margin-bottom:48px}
+
+/* === NAV === */
+nav{position:fixed;top:0;left:0;right:0;z-index:9999;background:rgba(10,10,26,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);transition:box-shadow 0.3s}
+nav.scrolled{box-shadow:0 4px 40px rgba(0,0,0,0.5)}
+nav .shell{display:flex;align-items:center;justify-content:space-between;height:56px}
+.nav-brand{font-family:var(--display);font-size:1rem;font-weight:700;letter-spacing:4px;color:var(--text-bright);text-decoration:none;text-transform:uppercase}
+.nav-brand span{color:var(--cyan);text-shadow:0 0 16px var(--cyan-dim)}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links a{font-family:var(--ui);font-weight:600;font-size:0.85rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);text-decoration:none;transition:color 0.2s}
+.nav-links a:hover{color:var(--cyan)}
+.nav-cta{font-family:var(--ui);font-weight:700;font-size:0.8rem;letter-spacing:2px;text-transform:uppercase;padding:7px 18px;border:1px solid var(--cyan);color:var(--cyan) !important;background:transparent;text-decoration:none;transition:all 0.25s}
+.nav-cta:hover{background:rgba(0,255,204,0.1);box-shadow:0 0 20px var(--cyan-glow)}
+@media(max-width:768px){.nav-links a:not(.nav-cta){display:none}}
+
+/* === BUTTONS === */
+.btn-primary{font-family:var(--ui);font-weight:700;font-size:0.95rem;letter-spacing:3px;text-transform:uppercase;padding:14px 32px;border:1px solid var(--cyan);color:var(--base);background:var(--cyan);text-decoration:none;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden;display:inline-block;text-align:center}
+.btn-primary:hover{box-shadow:0 0 30px var(--cyan-dim),0 0 60px var(--cyan-glow);transform:translateY(-2px)}
+.btn-primary::after{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);transition:left 0.5s}
+.btn-primary:hover::after{left:100%}
+@keyframes ctaPulse{0%,100%{box-shadow:0 0 10px var(--cyan-glow)}50%{box-shadow:0 0 24px var(--cyan-dim),0 0 48px var(--cyan-glow)}}
+.btn-primary{animation:ctaPulse 3s ease-in-out infinite}
+.btn-secondary{font-family:var(--ui);font-weight:600;font-size:0.95rem;letter-spacing:2px;text-transform:uppercase;padding:14px 28px;border:1px solid var(--border);color:var(--text-dim);background:transparent;text-decoration:none;cursor:pointer;transition:all 0.25s;display:inline-block}
+.btn-secondary:hover{border-color:var(--text-dim);color:var(--text-bright)}
+
+/* =============================================
+   HERO
+   ============================================= */
+.hero{padding:140px 0 80px;position:relative;overflow:hidden;min-height:100vh;display:flex;align-items:center}
+.hero-inner{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+@media(max-width:900px){.hero-inner{grid-template-columns:1fr;text-align:center}}
+.hero-text .overline{font-family:var(--mono);font-size:0.7rem;letter-spacing:5px;color:var(--magenta);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.hero-text .overline::before{content:'';width:32px;height:1px;background:var(--magenta)}
+@media(max-width:900px){.hero-text .overline{justify-content:center}}
+.hero-text h1{font-family:var(--display);font-size:clamp(2rem,5vw,3.2rem);font-weight:800;letter-spacing:3px;line-height:1.1;color:var(--text-bright);text-transform:uppercase;margin-bottom:20px}
+.hero-text h1 em{font-style:normal;color:var(--cyan);text-shadow:0 0 30px var(--cyan-dim)}
+.hero-text p{font-size:1.15rem;font-weight:400;color:var(--text);line-height:1.65;max-width:480px;margin-bottom:32px}
+@media(max-width:900px){.hero-text p{margin:0 auto 32px}}
+.hero-buttons{display:flex;gap:16px;flex-wrap:wrap}
+@media(max-width:900px){.hero-buttons{justify-content:center}}
+
+/* HUD Mockup */
+.hud-mockup{position:relative;aspect-ratio:16/10;background:var(--surface);border:1px solid var(--border);overflow:hidden}
+.hud-mockup::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,255,204,0.03),transparent 40%,transparent 60%,rgba(255,0,170,0.02))}
+.hud-scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:0.6;animation:scanDrift 4s linear infinite}
+@keyframes scanDrift{0%{top:-2px}100%{top:calc(100% + 2px)}}
+.hud-corner{position:absolute;width:36px;height:36px;border-color:var(--cyan);border-style:solid;border-width:0;opacity:0.7}
+.hud-corner.tl{top:16px;left:16px;border-top-width:2px;border-left-width:2px}
+.hud-corner.tr{top:16px;right:16px;border-top-width:2px;border-right-width:2px}
+.hud-corner.bl{bottom:16px;left:16px;border-bottom-width:2px;border-left-width:2px}
+.hud-corner.br{bottom:16px;right:16px;border-bottom-width:2px;border-right-width:2px}
+.hud-silhouette{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5}
+.hud-sil-head{width:32px;height:32px;border-radius:50%;border:2px solid var(--cyan);animation:silPulse 2.5s ease-in-out infinite}
+.hud-sil-body{width:50px;height:68px;border:2px solid var(--cyan);border-radius:24px 24px 8px 8px;animation:silPulse 2.5s ease-in-out infinite 0.2s}
+@keyframes silPulse{0%,100%{opacity:0.4;border-color:var(--cyan)}50%{opacity:0.8;border-color:var(--blue)}}
+.hud-reticle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:160px;height:160px}
+.hud-reticle::before{content:'';position:absolute;inset:0;border:1px solid rgba(0,255,204,0.1);border-radius:50%;animation:reticleSpin 12s linear infinite}
+.hud-reticle::after{content:'';position:absolute;inset:20px;border:1px solid rgba(0,240,255,0.08);border-radius:50%;animation:reticleSpin 8s linear infinite reverse}
+@keyframes reticleSpin{to{transform:rotate(360deg)}}
+.hud-cross-h,.hud-cross-v{position:absolute;background:rgba(0,255,204,0.15)}
+.hud-cross-h{top:50%;left:16px;right:16px;height:1px}
+.hud-cross-v{left:50%;top:16px;bottom:16px;width:1px}
+.hud-wave{position:absolute;bottom:20px;left:20px;right:20px;height:24px;display:flex;align-items:end;gap:2px;opacity:0.35}
+.hud-wave span{flex:1;background:var(--cyan);border-radius:1px 1px 0 0;animation:waveBar 1.2s ease-in-out infinite}
+.hud-label{position:absolute;font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);opacity:0.5}
+.hud-label.fps{top:18px;right:22px}
+.hud-label.model{bottom:50px;left:22px}
+.hud-label.res{top:18px;left:22px}
+.hero-glow-1{position:absolute;top:20%;left:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(0,255,204,0.06),transparent 70%);pointer-events:none}
+.hero-glow-2{position:absolute;bottom:0;right:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(255,0,170,0.04),transparent 70%);pointer-events:none}
+
+/* =============================================
+   BEFORE / AFTER DIAGRAM
+   ============================================= */
+.beforeafter{padding:80px 0 40px}
+.ba-row{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap}
+.ba-box{width:280px;height:180px;background:var(--surface);border:1px solid var(--border);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.ba-box .ba-label{font-family:var(--mono);font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);position:absolute;top:10px;left:12px}
+/* "Before" scene — messy room */
+.ba-before .ba-scene{display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0.7}
+.ba-before .ba-person{display:flex;flex-direction:column;align-items:center}
+.ba-before .ba-person-head{width:22px;height:22px;border-radius:50%;background:var(--text-dim)}
+.ba-before .ba-person-body{width:34px;height:44px;background:var(--text-dim);border-radius:14px 14px 4px 4px;margin-top:3px}
+.ba-before .ba-clutter{position:absolute;font-size:18px;opacity:0.25}
+.ba-before .ba-clutter:nth-child(2){top:30px;right:30px}
+.ba-before .ba-clutter:nth-child(3){bottom:25px;left:25px}
+.ba-before .ba-clutter:nth-child(4){top:50px;left:40px}
+.ba-before .ba-clutter:nth-child(5){bottom:30px;right:50px}
+/* Arrow */
+.ba-arrow{width:60px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0}
+.ba-arrow-line{width:100%;height:2px;background:var(--cyan);position:relative}
+.ba-arrow-line::after{content:'';position:absolute;right:-1px;top:-5px;border:6px solid transparent;border-left:8px solid var(--cyan)}
+.ba-arrow-label{position:absolute;top:-20px;font-family:var(--mono);font-size:0.55rem;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;white-space:nowrap}
+/* "After" scene — clean bg */
+.ba-after{border-color:var(--cyan-dim)}
+.ba-after .ba-scene{display:flex;flex-direction:column;align-items:center}
+.ba-after .ba-person-head{width:22px;height:22px;border-radius:50%;background:var(--cyan)}
+.ba-after .ba-person-body{width:34px;height:44px;background:var(--cyan);border-radius:14px 14px 4px 4px;margin-top:3px}
+.ba-after .ba-bg-clean{position:absolute;inset:0;background:linear-gradient(135deg,#1a1a3e,#0d2a3a);z-index:0}
+.ba-after .ba-bg-clean::after{content:'';position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(0deg,rgba(0,255,204,0.04),transparent)}
+.ba-after .ba-scene{position:relative;z-index:1}
+.ba-after .ba-label{z-index:2}
+@media(max-width:768px){.ba-row{gap:16px}.ba-arrow{width:40px;transform:rotate(90deg)}.ba-box{width:240px;height:150px}}
+
+/* =============================================
+   PIPELINE DIAGRAM
+   ============================================= */
+.pipeline{padding:60px 0 100px}
+.pipe-flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;margin-top:8px}
+@media(max-width:900px){.pipe-flow{gap:12px}}
+.pipe-node{background:var(--surface);border:1px solid var(--border);padding:16px 20px;text-align:center;min-width:130px;position:relative;transition:all 0.3s}
+.pipe-node:hover{border-color:var(--cyan-dim);box-shadow:0 0 20px var(--cyan-glow)}
+.pipe-node-icon{font-size:1.6rem;margin-bottom:6px;display:block}
+.pipe-node-title{font-family:var(--display);font-size:0.55rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text-bright);margin-bottom:3px}
+.pipe-node-desc{font-family:var(--mono);font-size:0.6rem;color:var(--text-dim);line-height:1.4}
+.pipe-arrow{width:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pipe-arrow-inner{width:100%;height:2px;background:var(--border);position:relative}
+.pipe-arrow-inner::after{content:'';position:absolute;right:-1px;top:-4px;border:5px solid transparent;border-left:6px solid var(--border)}
+.pipe-node:hover+.pipe-arrow .pipe-arrow-inner,.pipe-node:hover+.pipe-arrow .pipe-arrow-inner::after{background:var(--cyan);border-left-color:var(--cyan)}
+@media(max-width:900px){.pipe-arrow{width:24px;transform:rotate(90deg)}.pipe-flow{flex-direction:column;align-items:center}}
+
+/* =============================================
+   FEATURES
+   ============================================= */
+.features{padding:100px 0}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:900px){.feature-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.feature-grid{grid-template-columns:1fr}}
+.feature-card{background:var(--surface);border:1px solid var(--border);padding:28px 24px;position:relative;overflow:hidden;transition:all 0.35s cubic-bezier(.22,1,.36,1)}
+.feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);transition:background 0.35s}
+.feature-card:hover{border-color:var(--cyan-dim);transform:translateY(-4px);box-shadow:0 8px 40px rgba(0,0,0,0.4)}
+.feature-card:hover::before{background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
+.feature-icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:16px;border:1px solid var(--border);background:var(--surface-2);color:var(--cyan);transition:all 0.35s}
+.feature-card:hover .feature-icon{border-color:var(--cyan-dim);box-shadow:0 0 16px var(--cyan-glow)}
+.feature-card h3{font-family:var(--display);font-size:0.72rem;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text-bright);margin-bottom:8px}
+.feature-card p{font-size:0.92rem;color:var(--text-dim);line-height:1.55}
+/* Mini diagrams inside feature cards */
+.feat-mini{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.feat-mini-row{display:flex;align-items:center;gap:6px;justify-content:center}
+.feat-mini-box{font-family:var(--mono);font-size:0.55rem;letter-spacing:1px;padding:4px 8px;border:1px solid var(--border);color:var(--text-dim);text-transform:uppercase;background:var(--surface-2)}
+.feat-mini-box.active{border-color:var(--cyan-dim);color:var(--cyan)}
+.feat-mini-arrow{color:var(--text-dim);font-size:0.7rem}
+.feat-mini-bar{display:flex;gap:3px;margin-top:8px;justify-content:center}
+.feat-mini-bar span{height:6px;flex:1;max-width:40px;border-radius:1px}
+.feat-mini-bar .filled{background:var(--cyan);opacity:0.6}
+.feat-mini-bar .empty{background:var(--border)}
+/* Slider mini diagram */
+.feat-slider-mini{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.feat-slider-row{display:flex;align-items:center;gap:8px}
+.feat-slider-label{font-family:var(--mono);font-size:0.5rem;color:var(--text-dim);width:50px;text-align:right;text-transform:uppercase;letter-spacing:1px}
+.feat-slider-track{flex:1;height:4px;background:var(--border);border-radius:2px;position:relative}
+.feat-slider-fill{height:100%;border-radius:2px;background:var(--cyan);opacity:0.6}
+.feat-slider-thumb{position:absolute;top:-4px;width:10px;height:12px;background:var(--cyan);border-radius:2px}
+/* Steps mini */
+.feat-steps-mini{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:10px}
+.feat-step-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:0.45rem;color:var(--text-dim)}
+.feat-step-dot.done{border-color:var(--cyan);color:var(--cyan)}
+.feat-step-line{width:12px;height:1px;background:var(--border)}
+.feat-step-line.done{background:var(--cyan)}
+/* Brush mini */
+.feat-brush-mini{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px}
+.feat-brush-circle{width:28px;height:28px;border-radius:50%;border:2px dashed var(--cyan);opacity:0.5;display:flex;align-items:center;justify-content:center}
+.feat-brush-circle::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--cyan);opacity:0.7}
+.feat-brush-circle.sm{width:18px;height:18px}
+.feat-brush-circle.sm::after{width:5px;height:5px}
+.feat-brush-circle.lg{width:38px;height:38px}
+.feat-brush-circle.lg::after{width:12px;height:12px}
+/* Diff mini */
+.feat-diff-mini{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:10px}
+.feat-diff-frame{width:40px;height:30px;border:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:0.5rem;color:var(--text-dim);font-family:var(--mono)}
+.feat-diff-frame.highlight{border-color:var(--magenta);color:var(--magenta)}
+.feat-diff-eq{font-family:var(--mono);font-size:0.8rem;color:var(--text-dim)}
+
+/* =============================================
+   HOW IT WORKS
+   ============================================= */
+.how{padding:100px 0}
+.steps{display:flex;align-items:flex-start;justify-content:center;gap:0;position:relative}
+@media(max-width:768px){.steps{flex-direction:column;align-items:center;gap:32px}}
+.step{display:flex;flex-direction:column;align-items:center;text-align:center;flex:1;max-width:220px;position:relative;z-index:1}
+.step-dot{width:48px;height:48px;border-radius:50%;border:2px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:1rem;font-weight:700;color:var(--text-dim);margin-bottom:16px;transition:all 0.4s}
+.step:hover .step-dot{border-color:var(--cyan);color:var(--cyan);background:var(--surface-2);box-shadow:0 0 20px var(--cyan-glow)}
+.step h3{font-family:var(--display);font-size:0.7rem;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text-bright);margin-bottom:6px}
+.step p{font-size:0.9rem;color:var(--text-dim);line-height:1.5}
+.step-line{flex:0 0 auto;width:60px;height:2px;background:var(--border);margin-top:24px;position:relative}
+.step-line::after{content:'';position:absolute;top:0;left:0;height:100%;width:0;background:var(--cyan);transition:width 0.6s}
+@media(max-width:768px){.step-line{width:2px;height:32px;margin-top:0}}
+
+/* =============================================
+   SPECS
+   ============================================= */
+.specs{padding:80px 0}
+.spec-terminal{background:var(--surface);border:1px solid var(--border);max-width:700px;position:relative;overflow:hidden}
+.spec-terminal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan-dim),transparent)}
+.spec-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.spec-bar-dot{width:8px;height:8px;border-radius:50%;border:1px solid var(--border)}
+.spec-bar-dot:nth-child(1){border-color:var(--magenta);background:rgba(255,0,170,0.3)}
+.spec-bar-dot:nth-child(2){border-color:var(--cyan);background:rgba(0,255,204,0.3)}
+.spec-bar-title{font-family:var(--mono);font-size:0.65rem;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase;margin-left:auto}
+.spec-body{padding:20px 24px;font-family:var(--mono);font-size:0.8rem;line-height:2;color:var(--text)}
+.spec-body .k{color:var(--text-dim)}
+.spec-body .v{color:var(--cyan)}
+.spec-body .v2{color:var(--magenta)}
+
+/* =============================================
+   PRICING
+   ============================================= */
+.pricing{padding:100px 0;text-align:center}
+.price-card{background:var(--surface);border:1px solid var(--cyan-dim);max-width:420px;margin:0 auto;padding:48px 40px;position:relative;overflow:hidden}
+.price-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--cyan))}
+.price-card::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,255,204,0.03),transparent 50%);pointer-events:none}
+.price-amount{font-family:var(--display);font-size:4rem;font-weight:900;color:var(--cyan);text-shadow:0 0 40px var(--cyan-dim);line-height:1;margin-bottom:4px}
+.price-label{font-family:var(--mono);font-size:0.75rem;letter-spacing:4px;text-transform:uppercase;color:var(--text-dim);margin-bottom:24px}
+.price-card h3{font-family:var(--display);font-size:1rem;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--text-bright);margin-bottom:20px}
+.price-features{list-style:none;text-align:left;margin-bottom:32px}
+.price-features li{font-size:0.95rem;color:var(--text);padding:8px 0;border-bottom:1px solid rgba(26,26,74,0.6);display:flex;align-items:center;gap:10px}
+.price-features li::before{content:'';width:6px;height:6px;background:var(--cyan);transform:rotate(45deg);flex-shrink:0}
+.price-card .btn-primary{width:100%}
+
+/* =============================================
+   FOOTER
+   ============================================= */
+footer{padding:40px 0;border-top:1px solid var(--border);position:relative}
+footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1px;background:linear-gradient(90deg,var(--cyan),transparent)}
+.footer-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.footer-brand{font-family:var(--display);font-size:0.8rem;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--text-dim)}
+.footer-brand span{color:var(--cyan)}
+.footer-links{display:flex;gap:24px}
+.footer-links a{font-family:var(--mono);font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);text-decoration:none;transition:color 0.2s}
+.footer-links a:hover{color:var(--cyan)}
+.footer-copy{font-family:var(--mono);font-size:0.65rem;color:var(--text-dim);letter-spacing:1px;width:100%;text-align:center;margin-top:16px;opacity:0.6}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="topnav">
+  <div class="shell">
+    <a href="#" class="nav-brand">plus<span>not</span></a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How It Works</a>
+      <a href="#specs">Specs</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#pricing" class="nav-cta">Download</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero" id="hero">
+  <div class="hero-glow-1"></div>
+  <div class="hero-glow-2"></div>
+  <div class="shell">
+    <div class="hero-inner">
+      <div class="hero-text section-reveal">
+        <div class="overline">No green screen needed</div>
+        <h1>Kill Your <em>Green Screen</em></h1>
+        <p>plusnot watches your webcam, figures out what's you and what's background, and swaps the background in real time. Just open it and go.</p>
+        <div class="hero-buttons">
+          <a href="#pricing" class="btn-primary">Download for Windows</a>
+          <a href="#" class="btn-secondary">View on GitHub</a>
+        </div>
+      </div>
+      <div class="hud-mockup section-reveal bracketed">
+        <div class="hud-scanline"></div>
+        <div class="hud-corner tl"></div>
+        <div class="hud-corner tr"></div>
+        <div class="hud-corner bl"></div>
+        <div class="hud-corner br"></div>
+        <div class="hud-reticle"></div>
+        <div class="hud-cross-h"></div>
+        <div class="hud-cross-v"></div>
+        <div class="hud-silhouette">
+          <div class="hud-sil-head"></div>
+          <div class="hud-sil-body"></div>
+        </div>
+        <div class="hud-wave" id="heroWave"></div>
+        <div class="hud-label res">640x480</div>
+        <div class="hud-label fps">60.0 FPS</div>
+        <div class="hud-label model">MediaPipe</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== BEFORE / AFTER ===== -->
+<section class="beforeafter section-reveal" id="beforeafter">
+  <div class="shell">
+    <div class="section-tag">The idea</div>
+    <h2 class="section-head">Your room is <span>messy</span>. Nobody has to know.</h2>
+    <p class="section-sub">plusnot separates you from your background using AI, then puts you in front of any image you want. It happens live, every frame, at 60fps.</p>
+    <div class="ba-row">
+      <div class="ba-box ba-before">
+        <div class="ba-label">Your webcam</div>
+        <div class="ba-clutter">&#x1F4DA;</div>
+        <div class="ba-clutter">&#x1F4E6;</div>
+        <div class="ba-clutter">&#x1F455;</div>
+        <div class="ba-clutter">&#x2615;</div>
+        <div class="ba-scene">
+          <div class="ba-person">
+            <div class="ba-person-head"></div>
+            <div class="ba-person-body"></div>
+          </div>
+        </div>
+      </div>
+      <div class="ba-arrow">
+        <div class="ba-arrow-label">AI</div>
+        <div class="ba-arrow-line"></div>
+      </div>
+      <div class="ba-box ba-after bracketed">
+        <div class="ba-bg-clean"></div>
+        <div class="ba-label" style="color:var(--cyan)">Output</div>
+        <div class="ba-scene">
+          <div class="ba-person">
+            <div class="ba-person-head"></div>
+            <div class="ba-person-body"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PIPELINE DIAGRAM ===== -->
+<section class="pipeline section-reveal" id="pipeline">
+  <div class="shell">
+    <div class="section-tag">Under the hood</div>
+    <h2 class="section-head">What happens <span>each frame</span></h2>
+    <p class="section-sub">Every frame from your camera goes through this pipeline. It all happens fast enough that you don't notice any delay.</p>
+    <div class="pipe-flow">
+      <div class="pipe-node">
+        <span class="pipe-node-icon">&#x1F3A5;</span>
+        <div class="pipe-node-title">Camera</div>
+        <div class="pipe-node-desc">Grabs a frame</div>
+      </div>
+      <div class="pipe-arrow"><div class="pipe-arrow-inner"></div></div>
+      <div class="pipe-node">
+        <span class="pipe-node-icon">&#x1F9E0;</span>
+        <div class="pipe-node-title">AI Model</div>
+        <div class="pipe-node-desc">Finds you</div>
+      </div>
+      <div class="pipe-arrow"><div class="pipe-arrow-inner"></div></div>
+      <div class="pipe-node">
+        <span class="pipe-node-icon">&#x2B1B;</span>
+        <div class="pipe-node-title">Mask</div>
+        <div class="pipe-node-desc">Cleans edges</div>
+      </div>
+      <div class="pipe-arrow"><div class="pipe-arrow-inner"></div></div>
+      <div class="pipe-node">
+        <span class="pipe-node-icon">&#x1F5BC;</span>
+        <div class="pipe-node-title">Composite</div>
+        <div class="pipe-node-desc">Swaps background</div>
+      </div>
+      <div class="pipe-arrow"><div class="pipe-arrow-inner"></div></div>
+      <div class="pipe-node">
+        <span class="pipe-node-icon">&#x1F4FA;</span>
+        <div class="pipe-node-title">Display</div>
+        <div class="pipe-node-desc">You see it</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FEATURES ===== -->
+<section class="features section-reveal" id="features">
+  <div class="shell">
+    <div class="section-tag">Features</div>
+    <h2 class="section-head">What you <span>get</span></h2>
+    <p class="section-sub">Everything you need to look professional on camera, without buying anything.</p>
+    <div class="feature-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon">&#x25C8;</div>
+        <h3>AI Background Removal</h3>
+        <p>Three AI models built in. Each one looks at your camera and figures out which pixels are you. Pick the one that works best for your setup.</p>
+        <div class="feat-mini">
+          <div class="feat-mini-row">
+            <div class="feat-mini-box active">MediaPipe</div>
+            <div class="feat-mini-box">MODNet</div>
+            <div class="feat-mini-box">SINet</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">&#x25B7;</div>
+        <h3>Real-Time Compositing</h3>
+        <p>Your camera feed is processed and composited onto your chosen background every single frame. Smooth enough for live calls and streaming.</p>
+        <div class="feat-mini">
+          <div class="feat-mini-bar">
+            <span class="filled"></span><span class="filled"></span><span class="filled"></span>
+            <span class="filled"></span><span class="filled"></span><span class="filled"></span>
+            <span class="filled"></span><span class="filled"></span><span class="empty"></span><span class="empty"></span>
+          </div>
+          <div style="font-family:var(--mono);font-size:0.55rem;color:var(--text-dim);text-align:center;margin-top:4px;letter-spacing:1px">~60 FPS</div>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">&#x2609;</div>
+        <h3>Calibration Wizard</h3>
+        <p>A step-by-step guide walks you through setup. Capture your empty room, step in, and it automatically finds the best settings.</p>
+        <div class="feat-mini">
+          <div class="feat-steps-mini">
+            <div class="feat-step-dot done">1</div>
+            <div class="feat-step-line done"></div>
+            <div class="feat-step-dot done">2</div>
+            <div class="feat-step-line done"></div>
+            <div class="feat-step-dot done">3</div>
+            <div class="feat-step-line"></div>
+            <div class="feat-step-dot">4</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">&#x2592;</div>
+        <h3>Edge Tuning</h3>
+        <p>Drag sliders to control how tight, soft, or sharp the edges around you look. See the changes instantly with live debug previews.</p>
+        <div class="feat-mini">
+          <div class="feat-slider-mini">
+            <div class="feat-slider-row">
+              <span class="feat-slider-label">Shrink</span>
+              <div class="feat-slider-track"><div class="feat-slider-fill" style="width:30%"></div><div class="feat-slider-thumb" style="left:27%"></div></div>
+            </div>
+            <div class="feat-slider-row">
+              <span class="feat-slider-label">Soft</span>
+              <div class="feat-slider-track"><div class="feat-slider-fill" style="width:55%"></div><div class="feat-slider-thumb" style="left:52%"></div></div>
+            </div>
+            <div class="feat-slider-row">
+              <span class="feat-slider-label">Hard</span>
+              <div class="feat-slider-track"><div class="feat-slider-fill" style="width:15%"></div><div class="feat-slider-thumb" style="left:12%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">&#x29BF;</div>
+        <h3>Scene Detection</h3>
+        <p>Compares what your camera sees now to the empty room you captured earlier. Helps the AI tell what's background and what moved.</p>
+        <div class="feat-mini">
+          <div class="feat-diff-mini">
+            <div class="feat-diff-frame">Empty</div>
+            <div class="feat-diff-eq">&minus;</div>
+            <div class="feat-diff-frame">Now</div>
+            <div class="feat-diff-eq">=</div>
+            <div class="feat-diff-frame highlight">Diff</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">&#x2710;</div>
+        <h3>Manual Brush</h3>
+        <p>If the AI gets something wrong, paint over it. Mark areas as "always me" or "always background" with an adjustable brush.</p>
+        <div class="feat-mini">
+          <div class="feat-brush-mini">
+            <div class="feat-brush-circle sm"></div>
+            <div class="feat-brush-circle"></div>
+            <div class="feat-brush-circle lg"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===== HOW IT WORKS ===== -->
+<section class="how section-reveal" id="how">
+  <div class="shell">
+    <div class="section-tag">Workflow</div>
+    <h2 class="section-head">Four steps. <span class="mg">That's it.</span></h2>
+    <div class="steps" id="stepsRow">
+      <div class="step">
+        <div class="step-dot">1</div>
+        <h3>Launch</h3>
+        <p>Open the app. Your camera turns on automatically.</p>
+      </div>
+      <div class="step-line"></div>
+      <div class="step">
+        <div class="step-dot">2</div>
+        <h3>Calibrate</h3>
+        <p>The wizard captures your empty room and learns what "background" looks like.</p>
+      </div>
+      <div class="step-line"></div>
+      <div class="step">
+        <div class="step-dot">3</div>
+        <h3>Tune</h3>
+        <p>Move some sliders until the edges look right. Takes about 30 seconds.</p>
+      </div>
+      <div class="step-line"></div>
+      <div class="step">
+        <div class="step-dot">4</div>
+        <h3>Go Live</h3>
+        <p>Done. Use it for Zoom, OBS, Teams, or whatever you stream with.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SPECS ===== -->
+<section class="specs section-reveal" id="specs">
+  <div class="shell">
+    <div class="section-tag">What you need</div>
+    <div class="spec-terminal bracketed">
+      <div class="spec-bar">
+        <div class="spec-bar-dot"></div>
+        <div class="spec-bar-dot"></div>
+        <div class="spec-bar-title">plusnot --version</div>
+      </div>
+      <div class="spec-body">
+        <span class="k">platform</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="v">Windows 10 / 11</span><br>
+        <span class="k">runtime</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="v">.NET 8.0</span><br>
+        <span class="k">camera</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="v">Any USB or built-in webcam</span><br>
+        <span class="k">ai engine</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="v">ONNX Runtime (runs on your CPU)</span><br>
+        <span class="k">models</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="v2">MediaPipe</span> <span class="k">&middot;</span> <span class="v2">MODNet</span> <span class="k">&middot;</span> <span class="v2">SINet</span><br>
+        <span class="k">speed</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="v">~60 frames per second</span><br>
+        <span class="k">resolution</span>&nbsp;&nbsp;&nbsp;<span class="v">640x480 or 1280x720</span><br>
+        <span class="k">price</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="v2">free forever (MIT license)</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PRICING ===== -->
+<section class="pricing section-reveal" id="pricing">
+  <div class="shell">
+    <div class="section-tag" style="justify-content:center">Get it</div>
+    <h2 class="section-head">Free. <span>Open source.</span> No catch.</h2>
+    <div class="price-card bracketed">
+      <div class="price-amount">$0</div>
+      <div class="price-label">Forever</div>
+      <h3>Everything Included</h3>
+      <ul class="price-features">
+        <li>All three AI models</li>
+        <li>Step-by-step calibration wizard</li>
+        <li>Live edge tuning with previews</li>
+        <li>Manual paint brush for fixes</li>
+        <li>Sci-fi HUD overlay</li>
+        <li>Full source code on GitHub</li>
+      </ul>
+      <a href="#" class="btn-primary">Download for Windows</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="shell">
+    <div class="footer-inner">
+      <div class="footer-brand">plus<span>not</span></div>
+      <div class="footer-links">
+        <a href="#">GitHub</a>
+        <a href="#">Docs</a>
+        <a href="#">Issues</a>
+      </div>
+    </div>
+    <div class="footer-copy">&copy; 2025 plusnot. MIT License.</div>
+  </div>
+</footer>
+
+<script>
+// Scroll reveal
+const reveals = document.querySelectorAll('.section-reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }});
+}, { threshold: 0.1 });
+reveals.forEach(el => observer.observe(el));
+
+// Nav shadow
+const nav = document.getElementById('topnav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
+
+// Waveform bars
+const wave = document.getElementById('heroWave');
+for (let i = 0; i < 64; i++) {
+  const s = document.createElement('span');
+  s.style.height = (3 + Math.random() * 18) + 'px';
+  s.style.animationDelay = (Math.random() * 1.2).toFixed(2) + 's';
+  s.style.animationDuration = (0.8 + Math.random() * 0.8).toFixed(2) + 's';
+  wave.appendChild(s);
+}
+document.head.appendChild(Object.assign(document.createElement('style'), {
+  textContent: '@keyframes waveBar{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1)}}'
+}));
+
+// Animate step dots + lines on scroll
+const stepsRow = document.getElementById('stepsRow');
+if (stepsRow) {
+  document.head.appendChild(Object.assign(document.createElement('style'), {
+    textContent: '.steps.active .step-line::after{width:100%;transition:width 0.8s cubic-bezier(.22,1,.36,1)}'
+  }));
+  const sObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        stepsRow.classList.add('active');
+        document.querySelectorAll('.step-dot').forEach((d, i) => {
+          setTimeout(() => {
+            d.style.borderColor = 'var(--cyan)';
+            d.style.color = 'var(--cyan)';
+            d.style.background = 'var(--surface-2)';
+            d.style.boxShadow = '0 0 20px var(--cyan-glow)';
+          }, i * 250);
+        });
+        sObs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  sObs.observe(stepsRow);
+}
+</script>
+</body>
+</html>
