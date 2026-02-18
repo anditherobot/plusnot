@@ -80,35 +80,70 @@ nav .shell{display:flex;align-items:center;justify-content:space-between;height:
 .hero-buttons{display:flex;gap:16px;flex-wrap:wrap}
 @media(max-width:900px){.hero-buttons{justify-content:center}}
 
-/* HUD Mockup */
-.hud-mockup{position:relative;aspect-ratio:16/10;background:var(--surface);border:1px solid var(--border);overflow:hidden}
-.hud-mockup::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,255,204,0.03),transparent 40%,transparent 60%,rgba(255,0,170,0.02))}
-.hud-scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:0.6;animation:scanDrift 4s linear infinite}
+/* App Mockup */
+.app-mockup{position:relative;border-radius:8px;overflow:hidden;box-shadow:0 20px 80px rgba(0,0,0,0.6),0 0 40px rgba(0,255,204,0.06);animation:mockupFloat 6s ease-in-out infinite}
+@keyframes mockupFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.app-titlebar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#0C0C20;border-bottom:1px solid var(--border)}
+.app-titlebar-dots{display:flex;gap:6px}
+.app-titlebar-dots span{width:10px;height:10px;border-radius:50%;background:var(--border)}
+.app-titlebar-dots span:nth-child(1){background:rgba(255,0,170,0.5)}
+.app-titlebar-dots span:nth-child(2){background:rgba(0,255,204,0.4)}
+.app-titlebar-dots span:nth-child(3){background:rgba(0,240,255,0.3)}
+.app-titlebar-text{font-family:var(--mono);font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-left:auto}
+.app-viewport{position:relative;aspect-ratio:16/10;background:linear-gradient(160deg,#0e1630,#0a1828,#0d1225);overflow:hidden}
+/* Scene background — subtle landscape */
+.app-scene-bg{position:absolute;inset:0}
+.app-scene-sky{position:absolute;top:0;left:0;right:0;height:55%;background:linear-gradient(180deg,#0c1a38,#132840,#1a3552)}
+.app-scene-stars{position:absolute;top:0;left:0;right:0;height:55%}
+.app-scene-stars span{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;animation:twinkle 3s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:0.2}50%{opacity:0.8}}
+.app-scene-ground{position:absolute;bottom:0;left:0;right:0;height:50%;background:linear-gradient(180deg,#1a3552,#132840)}
+.app-scene-horizon{position:absolute;top:55%;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,255,204,0.15),transparent)}
+.app-scene-mountains{position:absolute;bottom:45%;left:0;right:0;height:20%}
+.app-scene-mountains::before{content:'';position:absolute;bottom:0;left:5%;border-left:80px solid transparent;border-right:80px solid transparent;border-bottom:60px solid #111d35;opacity:0.7}
+.app-scene-mountains::after{content:'';position:absolute;bottom:0;left:35%;border-left:100px solid transparent;border-right:100px solid transparent;border-bottom:80px solid #0f1a30;opacity:0.6}
+/* Person silhouette — centered, solid, filled */
+.app-person{position:absolute;bottom:8%;left:50%;transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 0 12px rgba(0,255,204,0.15))}
+.app-person-head{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#2a4a6a,#1e3a55)}
+.app-person-shoulders{width:72px;height:8px;background:linear-gradient(135deg,#2a4a6a,#1e3a55);border-radius:20px 20px 0 0;margin-top:-2px}
+.app-person-body{width:64px;height:80px;background:linear-gradient(180deg,#2a4a6a,#1e3a55);border-radius:4px 4px 0 0;margin-top:-1px}
+/* Glow outline on person */
+.app-person::after{content:'';position:absolute;inset:-3px;border:1px solid rgba(0,255,204,0.2);border-radius:inherit;animation:personGlow 3s ease-in-out infinite;pointer-events:none}
+@keyframes personGlow{0%,100%{border-color:rgba(0,255,204,0.15);box-shadow:none}50%{border-color:rgba(0,255,204,0.35);box-shadow:0 0 16px rgba(0,255,204,0.1)}}
+/* HUD overlay elements */
+.app-hud-corner{position:absolute;width:32px;height:32px;border-color:var(--cyan);border-style:solid;border-width:0;opacity:0.5}
+.app-hud-corner.tl{top:10px;left:10px;border-top-width:2px;border-left-width:2px}
+.app-hud-corner.tr{top:10px;right:10px;border-top-width:2px;border-right-width:2px}
+.app-hud-corner.bl{bottom:10px;left:10px;border-bottom-width:2px;border-left-width:2px}
+.app-hud-corner.br{bottom:10px;right:10px;border-bottom-width:2px;border-right-width:2px}
+.app-hud-scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:0.3;animation:scanDrift 4s linear infinite}
 @keyframes scanDrift{0%{top:-2px}100%{top:calc(100% + 2px)}}
-.hud-corner{position:absolute;width:36px;height:36px;border-color:var(--cyan);border-style:solid;border-width:0;opacity:0.7}
-.hud-corner.tl{top:16px;left:16px;border-top-width:2px;border-left-width:2px}
-.hud-corner.tr{top:16px;right:16px;border-top-width:2px;border-right-width:2px}
-.hud-corner.bl{bottom:16px;left:16px;border-bottom-width:2px;border-left-width:2px}
-.hud-corner.br{bottom:16px;right:16px;border-bottom-width:2px;border-right-width:2px}
-.hud-silhouette{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.5}
-.hud-sil-head{width:32px;height:32px;border-radius:50%;border:2px solid var(--cyan);animation:silPulse 2.5s ease-in-out infinite}
-.hud-sil-body{width:50px;height:68px;border:2px solid var(--cyan);border-radius:24px 24px 8px 8px;animation:silPulse 2.5s ease-in-out infinite 0.2s}
-@keyframes silPulse{0%,100%{opacity:0.4;border-color:var(--cyan)}50%{opacity:0.8;border-color:var(--blue)}}
-.hud-reticle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:160px;height:160px}
-.hud-reticle::before{content:'';position:absolute;inset:0;border:1px solid rgba(0,255,204,0.1);border-radius:50%;animation:reticleSpin 12s linear infinite}
-.hud-reticle::after{content:'';position:absolute;inset:20px;border:1px solid rgba(0,240,255,0.08);border-radius:50%;animation:reticleSpin 8s linear infinite reverse}
-@keyframes reticleSpin{to{transform:rotate(360deg)}}
-.hud-cross-h,.hud-cross-v{position:absolute;background:rgba(0,255,204,0.15)}
-.hud-cross-h{top:50%;left:16px;right:16px;height:1px}
-.hud-cross-v{left:50%;top:16px;bottom:16px;width:1px}
-.hud-wave{position:absolute;bottom:20px;left:20px;right:20px;height:24px;display:flex;align-items:end;gap:2px;opacity:0.35}
-.hud-wave span{flex:1;background:var(--cyan);border-radius:1px 1px 0 0;animation:waveBar 1.2s ease-in-out infinite}
-.hud-label{position:absolute;font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);opacity:0.5}
-.hud-label.fps{top:18px;right:22px}
-.hud-label.model{bottom:50px;left:22px}
-.hud-label.res{top:18px;left:22px}
+.app-hud-label{position:absolute;font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);opacity:0.6}
+.app-hud-label.fps{top:14px;right:16px}
+.app-hud-label.model{top:14px;left:16px}
+.app-hud-label.seg{bottom:14px;left:16px;color:var(--magenta)}
+.app-hud-label.clock{bottom:14px;right:16px}
+/* Waveform */
+.app-wave{position:absolute;bottom:28px;left:15%;right:15%;height:20px;display:flex;align-items:end;gap:1px;opacity:0.3}
+.app-wave span{flex:1;background:var(--cyan);border-radius:1px 1px 0 0;animation:waveBar 1.2s ease-in-out infinite}
+/* Bottom toolbar */
+.app-toolbar{display:flex;align-items:center;gap:6px;padding:6px 14px;background:#0C0C20;border-top:1px solid var(--border)}
+.app-toolbar-btn{font-family:var(--mono);font-size:0.5rem;letter-spacing:1px;padding:3px 10px;border:1px solid var(--border);color:var(--text-dim);background:transparent;text-transform:uppercase}
+.app-toolbar-btn.active{border-color:var(--cyan-dim);color:var(--cyan)}
+.app-toolbar-spacer{flex:1}
+.app-toolbar-fps{font-family:var(--mono);font-size:0.5rem;color:var(--cyan);letter-spacing:1px}
+
 .hero-glow-1{position:absolute;top:20%;left:-10%;width:500px;height:500px;background:radial-gradient(circle,rgba(0,255,204,0.06),transparent 70%);pointer-events:none}
 .hero-glow-2{position:absolute;bottom:0;right:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(255,0,170,0.04),transparent 70%);pointer-events:none}
+
+/* Staggered fade-in for feature cards */
+.feature-card{opacity:0;transform:translateY(24px);transition:opacity 0.5s cubic-bezier(.22,1,.36,1),transform 0.5s cubic-bezier(.22,1,.36,1)}
+.feature-card.visible{opacity:1;transform:translateY(0)}
+
+/* Animated pipeline arrows */
+.pipe-arrow-inner{position:relative;overflow:hidden}
+.pipe-arrow-inner::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:pipeFlow 2s linear infinite}
+@keyframes pipeFlow{to{left:100%}}
 
 /* =============================================
    BEFORE / AFTER DIAGRAM
@@ -239,21 +274,6 @@ nav .shell{display:flex;align-items:center;justify-content:space-between;height:
 .spec-body .v2{color:var(--magenta)}
 
 /* =============================================
-   PRICING
-   ============================================= */
-.pricing{padding:100px 0;text-align:center}
-.price-card{background:var(--surface);border:1px solid var(--cyan-dim);max-width:420px;margin:0 auto;padding:48px 40px;position:relative;overflow:hidden}
-.price-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--cyan))}
-.price-card::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,255,204,0.03),transparent 50%);pointer-events:none}
-.price-amount{font-family:var(--display);font-size:4rem;font-weight:900;color:var(--cyan);text-shadow:0 0 40px var(--cyan-dim);line-height:1;margin-bottom:4px}
-.price-label{font-family:var(--mono);font-size:0.75rem;letter-spacing:4px;text-transform:uppercase;color:var(--text-dim);margin-bottom:24px}
-.price-card h3{font-family:var(--display);font-size:1rem;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--text-bright);margin-bottom:20px}
-.price-features{list-style:none;text-align:left;margin-bottom:32px}
-.price-features li{font-size:1.1rem;color:var(--text);padding:10px 0;border-bottom:1px solid rgba(26,26,74,0.6);display:flex;align-items:center;gap:10px}
-.price-features li::before{content:'';width:6px;height:6px;background:var(--cyan);transform:rotate(45deg);flex-shrink:0}
-.price-card .btn-primary{width:100%}
-
-/* =============================================
    FOOTER
    ============================================= */
 footer{padding:40px 0;border-top:1px solid var(--border);position:relative}
@@ -277,8 +297,7 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
       <a href="#features">Features</a>
       <a href="#how">How It Works</a>
       <a href="#specs">Specs</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#pricing" class="nav-cta">Download</a>
+      <a href="#" class="nav-cta">Download</a>
     </div>
   </div>
 </nav>
@@ -294,27 +313,46 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
         <h1>Stream from <em>anywhere</em></h1>
         <p>Swap your webcam background with any image you want. Works live while you stream, call, or present. Just pick a picture and go.</p>
         <div class="hero-buttons">
-          <a href="#pricing" class="btn-primary">Download for Windows</a>
+          <a href="#" class="btn-primary">Download for Windows</a>
           <a href="#" class="btn-secondary">View on GitHub</a>
         </div>
       </div>
-      <div class="hud-mockup section-reveal bracketed">
-        <div class="hud-scanline"></div>
-        <div class="hud-corner tl"></div>
-        <div class="hud-corner tr"></div>
-        <div class="hud-corner bl"></div>
-        <div class="hud-corner br"></div>
-        <div class="hud-reticle"></div>
-        <div class="hud-cross-h"></div>
-        <div class="hud-cross-v"></div>
-        <div class="hud-silhouette">
-          <div class="hud-sil-head"></div>
-          <div class="hud-sil-body"></div>
+      <div class="app-mockup section-reveal">
+        <div class="app-titlebar">
+          <div class="app-titlebar-dots"><span></span><span></span><span></span></div>
+          <div class="app-titlebar-text">plusnot</div>
         </div>
-        <div class="hud-wave" id="heroWave"></div>
-        <div class="hud-label res">640x480</div>
-        <div class="hud-label fps">60.0 FPS</div>
-        <div class="hud-label model">MediaPipe</div>
+        <div class="app-viewport">
+          <div class="app-scene-bg">
+            <div class="app-scene-sky"></div>
+            <div class="app-scene-stars" id="mockStars"></div>
+            <div class="app-scene-mountains"></div>
+            <div class="app-scene-ground"></div>
+            <div class="app-scene-horizon"></div>
+          </div>
+          <div class="app-person">
+            <div class="app-person-head"></div>
+            <div class="app-person-shoulders"></div>
+            <div class="app-person-body"></div>
+          </div>
+          <div class="app-hud-corner tl"></div>
+          <div class="app-hud-corner tr"></div>
+          <div class="app-hud-corner bl"></div>
+          <div class="app-hud-corner br"></div>
+          <div class="app-hud-scanline"></div>
+          <div class="app-hud-label model">MediaPipe</div>
+          <div class="app-hud-label fps">60.0 FPS</div>
+          <div class="app-hud-label seg">SEG ON</div>
+          <div class="app-hud-label clock" id="mockClock">00:00:00</div>
+          <div class="app-wave" id="heroWave"></div>
+        </div>
+        <div class="app-toolbar">
+          <div class="app-toolbar-btn active">Segment</div>
+          <div class="app-toolbar-btn">HUD</div>
+          <div class="app-toolbar-btn">Calibrate</div>
+          <div class="app-toolbar-spacer"></div>
+          <div class="app-toolbar-fps">60 fps</div>
+        </div>
       </div>
     </div>
   </div>
@@ -557,28 +595,6 @@ footer::before{content:'';position:absolute;top:-1px;left:0;width:120px;height:1
   </div>
 </section>
 
-<!-- ===== PRICING ===== -->
-<section class="pricing section-reveal" id="pricing">
-  <div class="shell">
-    <div class="section-tag" style="justify-content:center">Get it</div>
-    <h2 class="section-head">It's <span>free</span>. Seriously.</h2>
-    <div class="price-card bracketed">
-      <div class="price-amount">$0</div>
-      <div class="price-label">Forever</div>
-      <h3>The Whole Thing</h3>
-      <ul class="price-features">
-        <li>Swap your background with any image</li>
-        <li>Works with any webcam</li>
-        <li>Easy setup wizard</li>
-        <li>Tweak edges to look perfect</li>
-        <li>Use with OBS, Zoom, Teams</li>
-        <li>Source code included</li>
-      </ul>
-      <a href="#" class="btn-primary">Download for Windows</a>
-    </div>
-  </div>
-</section>
-
 <!-- FOOTER -->
 <footer>
   <div class="shell">
@@ -606,18 +622,58 @@ reveals.forEach(el => observer.observe(el));
 const nav = document.getElementById('topnav');
 window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), { passive: true });
 
+// Mockup stars
+const starBox = document.getElementById('mockStars');
+if (starBox) {
+  for (let i = 0; i < 30; i++) {
+    const s = document.createElement('span');
+    s.style.left = (Math.random() * 100) + '%';
+    s.style.top = (Math.random() * 100) + '%';
+    s.style.animationDelay = (Math.random() * 3).toFixed(1) + 's';
+    s.style.animationDuration = (2 + Math.random() * 3).toFixed(1) + 's';
+    if (Math.random() > 0.7) { s.style.width = '3px'; s.style.height = '3px'; }
+    starBox.appendChild(s);
+  }
+}
+
+// Mockup clock
+const clockEl = document.getElementById('mockClock');
+if (clockEl) {
+  let t = 0;
+  setInterval(() => {
+    t++;
+    const h = String(Math.floor(t/3600)).padStart(2,'0');
+    const m = String(Math.floor((t%3600)/60)).padStart(2,'0');
+    const s = String(t%60).padStart(2,'0');
+    clockEl.textContent = h+':'+m+':'+s;
+  }, 1000);
+}
+
 // Waveform bars
 const wave = document.getElementById('heroWave');
-for (let i = 0; i < 64; i++) {
+for (let i = 0; i < 80; i++) {
   const s = document.createElement('span');
-  s.style.height = (3 + Math.random() * 18) + 'px';
+  s.style.height = (2 + Math.random() * 14) + 'px';
   s.style.animationDelay = (Math.random() * 1.2).toFixed(2) + 's';
-  s.style.animationDuration = (0.8 + Math.random() * 0.8).toFixed(2) + 's';
+  s.style.animationDuration = (0.6 + Math.random() * 1).toFixed(2) + 's';
   wave.appendChild(s);
 }
 document.head.appendChild(Object.assign(document.createElement('style'), {
   textContent: '@keyframes waveBar{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1)}}'
 }));
+
+// Staggered feature card reveal
+const cards = document.querySelectorAll('.feature-card');
+const cardObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const idx = Array.from(cards).indexOf(e.target);
+      setTimeout(() => e.target.classList.add('visible'), idx * 120);
+      cardObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.15 });
+cards.forEach(c => cardObs.observe(c));
 
 // Animate step dots + lines on scroll
 const stepsRow = document.getElementById('stepsRow');
@@ -635,7 +691,7 @@ if (stepsRow) {
             d.style.color = 'var(--cyan)';
             d.style.background = 'var(--surface-2)';
             d.style.boxShadow = '0 0 20px var(--cyan-glow)';
-          }, i * 250);
+          }, i * 300);
         });
         sObs.unobserve(e.target);
       }
@@ -643,6 +699,26 @@ if (stepsRow) {
   }, { threshold: 0.3 });
   sObs.observe(stepsRow);
 }
+
+// Pipeline node stagger
+const pipeNodes = document.querySelectorAll('.pipe-node');
+pipeNodes.forEach((n, i) => {
+  n.style.opacity = '0';
+  n.style.transform = 'translateY(20px)';
+  n.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+});
+const pipeObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      pipeNodes.forEach((n, i) => {
+        setTimeout(() => { n.style.opacity = '1'; n.style.transform = 'translateY(0)'; }, i * 150);
+      });
+      pipeObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.3 });
+const pipeSection = document.getElementById('pipeline');
+if (pipeSection) pipeObs.observe(pipeSection);
 </script>
 </body>
 </html>
